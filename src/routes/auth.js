@@ -21,25 +21,25 @@ router.get("/user", async (req, res) => {
   }
 });
 
-router.get("/user/:id", async (req, res) => {
-  const { id } = req.params;
+// router.get("/user/:id", async (req, res) => {
+//   const { id } = req.params;
 
-  try {
-    const users = await User.findById(id, { password: 0 });
+//   try {
+//     const users = await User.findById(id, { password: 0 });
 
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      users: users,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Usuário não encontrado.",
-      error: error.message,
-    });
-  }
-});
+//     res.status(200).json({
+//       success: true,
+//       count: users.length,
+//       users: users,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Usuário não encontrado.",
+//       error: error.message,
+//     });
+//   }
+// });
 
 router.get("/user/:email", async (req, res) => {
   const { email } = req.params;
@@ -60,12 +60,12 @@ router.get("/user/:email", async (req, res) => {
 
 router.post("/user", async (req, res) => {
   const { email, password } = req.body;
-  const addu = new User({
+  const createUser = new User({
     name,
     email,
     password,
   });
-  addu.save();
+  createUser.save();
   res.status(200).json({
     user: {
       name,
@@ -87,12 +87,14 @@ router.post("/login", async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: "Email ou senha incorreto" });
+      return res.status(401).json({ message: "Email ou senha incorreta" });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Email ou senha incorreto" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Email ou senha incorreta" });
     }
 
     const token = jwt.sign(
@@ -102,11 +104,13 @@ router.post("/login", async (req, res) => {
     );
 
     res.status(200).json({
+      success: true,
       token,
       user: {
         id: user._id,
         email: user.email,
       },
+      message: "Login com sucesso!",
     });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
