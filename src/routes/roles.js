@@ -1,16 +1,35 @@
 const express = require("express");
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const req = require("express/lib/request");
 const Role = require("../models/Cargos");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
   try {
-    const roles = await Role.find();
+    const [roles, total] = await Promise.all([
+      Role.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Role.countDocuments(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     res.status(200).json({
       success: true,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null,
+      },
       count: roles.length,
       roles: roles,
     });
@@ -25,12 +44,38 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
+  const { role } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
 
   try {
-    const roles = await Role.find({ company: id });
+    const filter = { company: id };
+
+    if (role) {
+      filter.role = { $regex: role, $options: "i" };
+    }
+
+    const [roles, total] = await Promise.all([
+      Role.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Role.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     res.status(200).json({
       success: true,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null,
+      },
       count: roles.length,
       roles: roles,
     });
