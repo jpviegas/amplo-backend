@@ -44,10 +44,9 @@ router.get("/user", async (req, res) => {
 router.get("/user/:email", async (req, res) => {
   const { email } = req.params;
   try {
-    const users = await User.findOne({ email }, { name: 1, email: 1 });
-
+    const user = await User.findOne({ email }, { name: 1, email: 1 });
     res.status(200).json({
-      users,
+      user,
     });
   } catch (error) {
     res.status(500).json({

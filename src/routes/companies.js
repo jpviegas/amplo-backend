@@ -1,45 +1,44 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const req = require("express/lib/request");
 const Role = require("../models/Cargos");
-const Employee = require("../models/Funcionarios");
+const Company = require("../models/Empresas");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const employee = await Employee.find();
+    const companies = await Company.find();
 
     res.status(200).json({
       success: true,
-      count: employee.length,
-      employees: employee,
+      count: companies.length,
+      companies: companies,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error fetching roles",
+      message: "Error fetching companies",
       error: error.message,
     });
   }
 });
 
-router.get("/:name", async (req, res) => {
-  const { name } = req.params;
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const employees = await Employee.find({
-      name: { $regex: name, $options: "i" },
-    });
+    const companies = await Role.find({ company: id });
 
     res.status(200).json({
       success: true,
-      count: employees.length,
-      employees: employees,
+      count: companies.length,
+      companies: companies,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error fetching employees",
+      message: "Error fetching companies",
       error: error.message,
     });
   }
@@ -47,37 +46,36 @@ router.get("/:name", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const values = req.body;
-
   try {
-    const existingEmployee = await Employee.findOne({
-      name: values.name,
+    const existingCompany = await Company.findOne({
+      companyName: values.companyName,
     }).lean();
 
-    if (existingEmployee) {
+    if (existingCompany) {
       return res.status(409).json({
         success: false,
-        message: "Funcionário já cadastrado com este nome",
+        message: "Empresa já cadastrada com este nome",
       });
     }
 
-    const createNewEmployee = new Employee(values);
-    await createNewEmployee.save();
+    const createNewCompany = new Company(values);
+    await createNewCompany.save();
     res.status(201).json({
       success: true,
-      message: `O funcionário ${values.name} foi criado com sucesso.`,
+      message: `A empresa ${values.companyName} foi criada com sucesso.`,
     });
   } catch (error) {
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
-        message: "Dados inválidos para cadastro do funcionário",
+        message: "Dados inválidos para cadastro da empresa",
         errors: Object.values(error.errors).map((err) => err.message),
       });
     }
 
     res.status(500).json({
       success: false,
-      message: "Erro ao cadastrar o funcionário.",
+      message: "Erro ao cadastrar a empresa",
       error: error.message,
     });
   }
