@@ -1,5 +1,6 @@
 const express = require("express");
-const Company = require("../models/Empresas");
+const User = require("../models/User");
+const Hour = require("../models/Horarios");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
@@ -8,9 +9,9 @@ router.get("/", async (req, res) => {
   const skip = (page - 1) * limit;
 
   try {
-    const [companies, total] = await Promise.all([
-      Company.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      Company.countDocuments(),
+    const [hours, total] = await Promise.all([
+      Hour.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Hour.countDocuments(),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -29,13 +30,13 @@ router.get("/", async (req, res) => {
         nextPage: hasNextPage ? page + 1 : null,
         prevPage: hasPrevPage ? page - 1 : null,
       },
-      count: companies.length,
-      companies: companies,
+      count: hours.length,
+      hours: hours,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error fetching companies",
+      message: "Error fetching hours",
       error: error.message,
     });
   }
@@ -43,7 +44,7 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
-  const { companyName } = req.query;
+  const { hour } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = 10;
   const skip = (page - 1) * limit;
@@ -51,17 +52,13 @@ router.get("/:id", async (req, res) => {
   try {
     const filter = { company: id };
 
-    if (companyName) {
-      filter.companyName = { $regex: companyName, $options: "i" };
+    if (hour) {
+      filter.hour = { $regex: hour, $options: "i" };
     }
 
-    const [companies, total] = await Promise.all([
-      Company.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Company.countDocuments(filter),
+    const [hours, total] = await Promise.all([
+      Hour.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Hour.countDocuments(filter),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -79,50 +76,43 @@ router.get("/:id", async (req, res) => {
         nextPage: hasNextPage ? page + 1 : null,
         prevPage: hasPrevPage ? page - 1 : null,
       },
-      count: companies.length,
-      companies: companies,
+      count: hours.length,
+      hours: hours,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error fetching companies",
+      message: "Error fetching hours",
       error: error.message,
     });
   }
 });
 
 router.post("/", async (req, res) => {
-  const values = req.body;
-  try {
-    const existingCompany = await Company.findOne({
-      companyName: values.companyName,
-    }).lean();
+  const { hour, company } = req.body;
 
-    if (existingCompany) {
-      return res.status(409).json({
+  try {
+    const findCompany = await User.findById(company);
+    if (!findCompany) {
+      return res.status(404).json({
         success: false,
-        message: "Empresa já cadastrada com este nome",
+        message: "ID da empresa não encontrado",
       });
     }
 
-    const createNewCompany = new Company(values);
-    await createNewCompany.save();
+    const createNewHour = new Hour({
+      hour,
+      company,
+    });
+    await createNewHour.save();
     res.status(201).json({
       success: true,
-      message: `A empresa ${values.companyName} foi criada com sucesso.`,
+      message: `O horário ${hour} foi criado com sucesso.`,
     });
   } catch (error) {
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: "Dados inválidos para cadastro da empresa",
-        errors: Object.values(error.errors).map((err) => err.message),
-      });
-    }
-
     res.status(500).json({
       success: false,
-      message: "Erro ao cadastrar a empresa",
+      message: "Erro ao cadastrar o horário.",
       error: error.message,
     });
   }

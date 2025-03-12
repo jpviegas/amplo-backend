@@ -59,6 +59,7 @@ router.get("/user/:email", async (req, res) => {
 
 router.post("/user", async (req, res) => {
   const { email, password } = req.body;
+  const name = "default";
   const createUser = new User({
     name,
     email,

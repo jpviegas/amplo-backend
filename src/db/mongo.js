@@ -1,15 +1,20 @@
 const mongoose = require("mongoose");
+const uri = process.env.MONGODB_URI;
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/auth-db",
-    );
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    await mongoose.connect(uri);
+    // await client.connect();
+    console.log("Conectado ao MongoDB!");
+    // const db = client.db("amplo");
+    // const collections = await db.listCollections().toArray();
+    // console.log("Coleções:", collections);
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+    console.error("Erro ao conectar:", error);
+  } finally {
+    // await client.close();
   }
+  // console.log("conn");
 };
 
 module.exports = connectDB;
