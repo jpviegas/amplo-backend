@@ -4,7 +4,7 @@ const Role = require("../models/Cargos");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
-  const { company } = req.query;
+  const { company, role } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -14,12 +14,15 @@ router.get("/", async (req, res) => {
     filter.company = company;
   }
 
+  if (role) {
+    filter.role = { $regex: role, $options: "i" };
+  }
+
   try {
     const [roles, total] = await Promise.all([
       Role.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Role.countDocuments(filter),
     ]);
-
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
@@ -52,7 +55,6 @@ router.get("/:id", async (req, res) => {
   const { id } = req.params;
   const page = parseInt(req.query.page) || 1;
   const limit = 10;
-  // const skip = (page - 1) * limit;
 
   try {
     const [roles, total] = await Promise.all([Role.findById(id).lean()]);
