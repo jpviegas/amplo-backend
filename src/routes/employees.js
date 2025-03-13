@@ -1,7 +1,4 @@
 const express = require("express");
-const User = require("../models/User");
-const req = require("express/lib/request");
-const Role = require("../models/Cargos");
 const Employee = require("../models/Funcionarios");
 const router = express.Router();
 

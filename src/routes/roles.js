@@ -4,14 +4,20 @@ const Role = require("../models/Cargos");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
+  const { company } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
+  const filter = {};
+
+  if (company) {
+    filter.company = company;
+  }
 
   try {
     const [roles, total] = await Promise.all([
-      Role.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      Role.countDocuments(),
+      Role.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Role.countDocuments(filter),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -44,22 +50,12 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
-  const { role } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = 10;
-  const skip = (page - 1) * limit;
+  // const skip = (page - 1) * limit;
 
   try {
-    const filter = { company: id };
-
-    if (role) {
-      filter.role = { $regex: role, $options: "i" };
-    }
-
-    const [roles, total] = await Promise.all([
-      Role.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      Role.countDocuments(filter),
-    ]);
+    const [roles, total] = await Promise.all([Role.findById(id).lean()]);
 
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
@@ -76,7 +72,6 @@ router.get("/:id", async (req, res) => {
         nextPage: hasNextPage ? page + 1 : null,
         prevPage: hasPrevPage ? page - 1 : null,
       },
-      count: roles.length,
       roles: roles,
     });
   } catch (error) {
@@ -93,10 +88,18 @@ router.post("/", async (req, res) => {
 
   try {
     const findCompany = await User.findById(company);
+    const findRole = await Role.exists({ role: role, company: company });
     if (!findCompany) {
       return res.status(404).json({
         success: false,
         message: "ID da empresa não encontrado",
+      });
+    }
+
+    if (findRole) {
+      return res.status(409).json({
+        success: false,
+        message: "Cargo já cadastrado com este nome",
       });
     }
 
