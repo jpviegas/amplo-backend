@@ -91,6 +91,7 @@ router.post("/", async (req, res) => {
   try {
     const findCompany = await User.findById(company);
     const findRole = await Role.exists({ role: role, company: company });
+
     if (!findCompany) {
       return res.status(404).json({
         success: false,

@@ -21,41 +21,41 @@ router.get("/user", async (req, res) => {
   }
 });
 
-// router.get("/user/:id", async (req, res) => {
-//   const { id } = req.params;
+router.get("/user/:id", async (req, res) => {
+  const { id } = req.params;
 
-//   try {
-//     const users = await User.findById(id, { password: 0 });
-
-//     res.status(200).json({
-//       success: true,
-//       count: users.length,
-//       users: users,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: "Usuário não encontrado.",
-//       error: error.message,
-//     });
-//   }
-// });
-
-router.get("/user/:email", async (req, res) => {
-  const { email } = req.params;
   try {
-    const user = await User.findOne({ email }, { name: 1, email: 1 });
+    const users = await User.findById(id, { password: 0 });
+
     res.status(200).json({
-      user,
+      success: true,
+      count: users.length,
+      users: users,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error fetching users",
+      message: "Usuário não encontrado.",
       error: error.message,
     });
   }
 });
+
+// router.get("/user/:email", async (req, res) => {
+//   const { email } = req.params;
+//   try {
+//     const user = await User.findOne({ email }, { name: 1, email: 1 });
+//     res.status(200).json({
+//       user,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Error fetching users",
+//       error: error.message,
+//     });
+//   }
+// });
 
 router.post("/user", async (req, res) => {
   const { email, password } = req.body;
