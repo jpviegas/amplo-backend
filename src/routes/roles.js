@@ -53,33 +53,25 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
-  const page = parseInt(req.query.page) || 1;
-  const limit = 10;
 
   try {
-    const [roles, total] = await Promise.all([Role.findById(id).lean()]);
+    const [role] = await Promise.all([Role.findById(id).lean()]);
 
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    if (!employee) {
+      res.status(404).json({
+        success: false,
+        message: "Cargo não encontrado",
+      });
+    }
 
     res.status(200).json({
       success: true,
-      pagination: {
-        total,
-        page,
-        totalPages,
-        hasNextPage,
-        hasPrevPage,
-        nextPage: hasNextPage ? page + 1 : null,
-        prevPage: hasPrevPage ? page - 1 : null,
-      },
-      roles: roles,
+      role: role,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error fetching roles",
+      message: "Error fetching role",
       error: error.message,
     });
   }

@@ -3,33 +3,45 @@ const Employee = require("../models/Funcionarios");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
-  try {
-    const employee = await Employee.find();
+  const { name, company } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const filter = {};
 
-    res.status(200).json({
-      success: true,
-      count: employee.length,
-      employees: employee,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching roles",
-      error: error.message,
-    });
+  if (company) {
+    filter.company = company;
   }
-});
 
-router.get("/:name", async (req, res) => {
-  const { name } = req.params;
+  if (name) {
+    filter.name = { $regex: name, $options: "i" };
+  }
 
   try {
-    const employees = await Employee.find({
-      name: { $regex: name, $options: "i" },
-    });
+    const [employees, total] = await Promise.all([
+      Employee.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Employee.countDocuments(filter),
+    ]);
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     res.status(200).json({
       success: true,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null,
+      },
       count: employees.length,
       employees: employees,
     });
@@ -37,6 +49,32 @@ router.get("/:name", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching employees",
+      error: error.message,
+    });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [employee] = await Promise.all([Employee.findById(id).lean()]);
+
+    if (!employee) {
+      res.status(404).json({
+        success: false,
+        message: "Funcionário não encontrado",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      employee: employee,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching employee",
       error: error.message,
     });
   }
