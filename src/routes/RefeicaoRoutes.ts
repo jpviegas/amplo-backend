@@ -8,6 +8,5 @@ const router = express.Router();
 
 router.get("/", getAllRefeicoes);
 router.get("/:id", getRefeicaoById);
-// router.post("/", createNotice);
 
 export default router;

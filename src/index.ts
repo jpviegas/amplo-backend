@@ -9,6 +9,7 @@ import noticesRoutes from "./routes/NoticesRoutes";
 import refeicaoRoutes from "./routes/RefeicaoRoutes";
 import timesheetRoutes from "./routes/TimesheetRoutes";
 import trainingRoutes from "./routes/TrainingRoutes";
+import transporteRoutes from "./routes/TransporteRoutes";
 import userRoutes from "./routes/UserRoutes";
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use("/api/auth", userRoutes);
 app.use("/api/timesheet", timesheetRoutes);
 app.use("/api/notices", noticesRoutes);
 app.use("/api/refeicoes", refeicaoRoutes);
+app.use("/api/transportes", transporteRoutes);
 app.use("/api/trainings", trainingRoutes);
 app.use("/api/companies", protect, companiesRoutes);
 app.use("/api/departments", protect, departmentsRoutes);

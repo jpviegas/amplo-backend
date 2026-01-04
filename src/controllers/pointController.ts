@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Point } from "../models/Point";
 import { Refeicao } from "../models/Refeicao";
+import { Transporte } from "../models/Transporte";
 import { User } from "../models/User";
 
 export const getAllTimesheets = async (_req: Request, res: Response) => {
@@ -170,7 +171,6 @@ export const registerPoint = async (req: Request, res: Response) => {
       });
     }
 
-    // Adjust for Brasilia Time (UTC-3)
     const now = new Date();
     const brasiliaTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
 
@@ -180,7 +180,6 @@ export const registerPoint = async (req: Request, res: Response) => {
       location,
     });
 
-    // Atualizar Refeicao
     const pointDate = new Date(brasiliaTime);
     const monthNames = [
       "Janeiro",
@@ -219,15 +218,30 @@ export const registerPoint = async (req: Request, res: Response) => {
     );
 
     const diasTrabalhados = uniqueDays.size;
-    const valorDiario = 25;
-    const valorTotal = diasTrabalhados * valorDiario;
+    const valorRefeicaoDiario = 25;
+    const valorTransporteDiario = 12;
+    const valorRefeicaoTotal = diasTrabalhados * valorRefeicaoDiario;
+    const valorTransporteTotal = diasTrabalhados * valorTransporteDiario;
 
     await Refeicao.findOneAndUpdate(
       { user: userId, month: mesNome, year: ano },
       {
         daysWorked: diasTrabalhados,
-        totalValue: valorTotal,
-        dailyValue: valorDiario,
+        totalValue: valorRefeicaoTotal,
+        dailyValue: valorRefeicaoDiario,
+        user: userId,
+        month: mesNome,
+        year: ano,
+      },
+      { upsert: true, new: true }
+    );
+
+    await Transporte.findOneAndUpdate(
+      { user: userId, month: mesNome, year: ano },
+      {
+        daysWorked: diasTrabalhados,
+        totalValue: valorTransporteTotal,
+        dailyValue: valorTransporteDiario,
         user: userId,
         month: mesNome,
         year: ano,
