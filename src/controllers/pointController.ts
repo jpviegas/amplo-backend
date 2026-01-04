@@ -2,6 +2,7 @@ import console from "console";
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Point } from "../models/Point";
+import { Refeicao } from "../models/Refeicao";
 import { User } from "../models/User";
 
 export const getAllTimesheets = async (_req: Request, res: Response) => {
@@ -178,6 +179,61 @@ export const registerPoint = async (req: Request, res: Response) => {
       timestamp: brasiliaTime,
       location,
     });
+
+    // Atualizar Refeicao
+    const pointDate = new Date(brasiliaTime);
+    const monthNames = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+    const mesIndex = pointDate.getMonth();
+    const mesNome = monthNames[mesIndex];
+    const ano = pointDate.getFullYear();
+
+    const startOfMonth = new Date(ano, mesIndex, 1);
+    const endOfMonth = new Date(ano, mesIndex + 1, 0, 23, 59, 59);
+
+    const monthlyPoints = await Point.find({
+      userId,
+      timestamp: {
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      },
+    }).lean();
+
+    const uniqueDays = new Set(
+      monthlyPoints.map((p) => {
+        const d = new Date(p.timestamp);
+        return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+      })
+    );
+
+    const diasTrabalhados = uniqueDays.size;
+    const valorDiario = 25;
+    const valorTotal = diasTrabalhados * valorDiario;
+
+    await Refeicao.findOneAndUpdate(
+      { user: userId, month: mesNome, year: ano },
+      {
+        daysWorked: diasTrabalhados,
+        totalValue: valorTotal,
+        dailyValue: valorDiario,
+        user: userId,
+        month: mesNome,
+        year: ano,
+      },
+      { upsert: true, new: true }
+    );
 
     res.status(201).json({
       success: true,
