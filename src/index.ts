@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import connectDB from "./config/db";
 import { protect } from "./middleware/authMiddleware";
+import abonoRoutes from "./routes/AbonoRoutes";
 import companiesRoutes from "./routes/CompanyRoutes";
 import departmentsRoutes from "./routes/DepartmentRoutes";
 import noticesRoutes from "./routes/NoticesRoutes";
@@ -29,6 +30,7 @@ app.use("/api/refeicoes", refeicaoRoutes);
 app.use("/api/transportes", transporteRoutes);
 app.use("/api/trainings", trainingRoutes);
 app.use("/api/services", servicesRoutes);
+app.use("/api/abonos", abonoRoutes);
 app.use("/api/companies", protect, companiesRoutes);
 app.use("/api/departments", protect, departmentsRoutes);
 
