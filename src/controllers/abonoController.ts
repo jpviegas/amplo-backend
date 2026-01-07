@@ -25,10 +25,22 @@ export const getAllAbonos = async (_req: Request, res: Response) => {
   }
 };
 
-export const getAbonoById = async (req: Request, res: Response) => {
+export const getAbonoByUserId = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { month, year } = req.query;
+
     const filter: any = { user: id };
+
+    if (month && year) {
+      const start = new Date(Number(year), Number(month) - 1, 1);
+      const end = new Date(Number(year), Number(month), 0, 23, 59, 59);
+
+      filter.createdAt = {
+        $gte: start,
+        $lte: end,
+      };
+    }
 
     const abonos = await Abono.find(filter).lean();
 
@@ -36,13 +48,39 @@ export const getAbonoById = async (req: Request, res: Response) => {
       return res.status(200).json({
         success: true,
         abonos: [],
-        message: "Nenhum abono encontrado para este usuário",
+        message: "Nenhum abono encontrado para este usuário ou período",
       });
     }
     res.status(200).json({
       success: true,
       abonos,
       message: "Abonos encontrados com sucesso",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao buscar abonos",
+    });
+  }
+};
+
+export const getAbonoById = async (req: Request, res: Response) => {
+  try {
+    const { userId, id } = req.params;
+
+    const abono = await Abono.findById(id).lean();
+
+    if (!abono || !abono.user || abono.user.toString() !== userId) {
+      return res.status(200).json({
+        success: true,
+        abono: {},
+        message: "Nenhum abono encontrado para este usuário",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      abono,
+      message: "Abono encontrado com sucesso",
     });
   } catch (error) {
     return res.status(500).json({
@@ -63,7 +101,6 @@ export const createAbono = async (req: Request, res: Response) => {
       attachment,
       user,
     } = req.body;
-    console.log(req.body);
 
     if (!reason) {
       return res.status(400).json({

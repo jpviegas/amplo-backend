@@ -150,7 +150,6 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
 export const registerPoint = async (req: Request, res: Response) => {
   try {
     const { userId, location } = req.body;
-    console.log(userId, location);
 
     if (!userId) {
       return res.status(400).json({ message: "O ID do usuário é obrigatório" });
