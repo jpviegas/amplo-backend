@@ -36,9 +36,15 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
 
   try {
     if (!month || !year) {
-      return res.status(400).json({
-        success: false,
-        message: "Mês e ano são obrigatórios",
+      const point = await Point.findOne({
+        userId: id,
+      })
+        .sort({ timestamp: 1 })
+        .lean();
+      return res.status(200).json({
+        success: true,
+        message: "Último ponto do usuário encontrado com sucesso",
+        point,
       });
     }
 
@@ -58,12 +64,11 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
     if (!points || points.length === 0) {
       return res.status(200).json({
         success: true,
-        points: {},
+        points,
         message: "Nenhum ponto encontrado para este período",
       });
     }
 
-    // Group points by day
     const result: any[] = [];
     let currentDay: string | null = null;
     let dayTimestamps: Date[] = [];
@@ -111,7 +116,6 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
     points.forEach((point) => {
       const dateObj = new Date(point.timestamp);
 
-      // Format: DD/MM
       const dateStr = dateObj.toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
