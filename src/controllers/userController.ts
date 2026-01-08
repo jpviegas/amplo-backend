@@ -215,8 +215,6 @@ export const registerUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
   const values: IUser = req.body;
-  console.log(req.params);
-  console.log(req.body);
 
   try {
     const existingUser = await User.findById(id).lean();
@@ -304,8 +302,16 @@ export const authUser = async (req: Request, res: Response) => {
 export const changePassword = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { currentPassword, newPassword } = req.body;
-  console.log(req.params);
-  console.log(req.body);
+
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "A nova senha deve conter pelo menos 1 letra maiúscula, 1 caractere especial, 1 número e mínimo de 8 caracteres",
+    });
+  }
   try {
     const user = await User.findById(id);
     if (!user) {

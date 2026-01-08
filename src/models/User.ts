@@ -41,8 +41,14 @@ export interface IUser extends Document {
   placeOfBirth?: string;
   civilStatus?: string;
   dependents: boolean;
+  dependentsQuantity: number;
   createdAt: Date;
   updatedAt: Date;
+  children: Array<{
+    name: string;
+    cpf: string;
+    birthDate: string;
+  }>;
   comparePassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -68,6 +74,14 @@ const userSchema = new mongoose.Schema<IUser>(
     password: {
       type: String,
       required: [true, "A senha é obrigatória."],
+      minlength: [8, "A senha deve ter no mínimo 8 caracteres"],
+      validate: {
+        validator: function (v: string) {
+          return /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(v);
+        },
+        message:
+          "A senha deve conter pelo menos 1 letra maiúscula, 1 caractere especial, 1 número e mínimo de 8 caracteres",
+      },
       // select: false,
     },
     pis: {
@@ -138,6 +152,7 @@ const userSchema = new mongoose.Schema<IUser>(
     rg: {
       type: String,
       required: [true, "O RG é obrigatório"],
+      length: 9,
       validate: {
         validator: function (v: string) {
           return v.length === 9;
@@ -149,6 +164,13 @@ const userSchema = new mongoose.Schema<IUser>(
     birthDate: {
       type: String,
       required: [true, "A data de nascimento é obrigatória"],
+      length: 8,
+      validate: {
+        validator: function (v: string) {
+          return v.length === 8;
+        },
+        message: "Preencha apenas os 8 números da data de nascimento",
+      },
     },
     socialName: {
       type: String,
@@ -179,6 +201,13 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     phone: {
       type: String,
+      length: 11,
+      validate: {
+        validator: function (v: string) {
+          return v.length === 11;
+        },
+        message: "Preencha apenas os 11 números do telefone",
+      },
     },
     extension: {
       type: String,
@@ -205,6 +234,17 @@ const userSchema = new mongoose.Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    dependentsQuantity: {
+      type: Number,
+      default: 0,
+    },
+    children: [
+      {
+        name: { type: String },
+        cpf: { type: String },
+        birthDate: { type: String },
+      },
+    ],
   },
   {
     timestamps: true,
