@@ -39,7 +39,7 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
       const point = await Point.findOne({
         userId: id,
       })
-        .sort({ timestamp: 1 })
+        .sort({ timestamp: -1 })
         .lean();
       return res.status(200).json({
         success: true,
