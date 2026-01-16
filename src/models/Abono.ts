@@ -2,8 +2,10 @@ import mongoose from "mongoose";
 
 export interface IAbono extends Document {
   reason: "Esqueci" | "Atestado" | "Justificada" | "Injustificada";
-  initialDate: Date;
-  finalDate: Date;
+  initialDate: Number;
+  finalDate: Number;
+  initialTime: Number;
+  finalTime: Number;
   fullJourney: boolean;
   note: string;
   attachment: string;
@@ -17,10 +19,16 @@ const abonoSchema = new mongoose.Schema<IAbono>(
       required: true,
     },
     initialDate: {
-      type: Date,
+      type: String,
     },
     finalDate: {
-      type: Date,
+      type: String,
+    },
+    initialTime: {
+      type: String,
+    },
+    finalTime: {
+      type: String,
     },
     fullJourney: {
       type: Boolean,

@@ -15,12 +15,12 @@ export const getAllAbonos = async (_req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       abonos,
-      message: "Lista de atendimentos encontrada com sucesso",
+      message: "Lista de abonos encontrada com sucesso",
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Erro ao buscar atendimentos",
+      message: "Erro ao buscar abonos",
     });
   }
 };
@@ -96,6 +96,8 @@ export const createAbono = async (req: Request, res: Response) => {
       reason,
       initialDate,
       finalDate,
+      initialTime,
+      finalTime,
       fullJourney,
       note,
       attachment,
@@ -133,6 +135,8 @@ export const createAbono = async (req: Request, res: Response) => {
       reason,
       initialDate,
       finalDate,
+      initialTime,
+      finalTime,
       fullJourney,
       note,
       attachment,
