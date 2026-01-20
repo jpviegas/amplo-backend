@@ -4,6 +4,7 @@ export interface IService extends Document {
   type: "RH" | "OP" | "OR";
   subject: String;
   text: String;
+  status: "Pendente" | "Aprovado" | "Rejeitado";
   user: mongoose.Schema.Types.ObjectId;
 }
 
@@ -21,6 +22,10 @@ const serviceSchema = new mongoose.Schema<IService>(
       type: String,
       required: true,
     },
+    status: {
+      type: String,
+      default: "Pendente",
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -29,7 +34,7 @@ const serviceSchema = new mongoose.Schema<IService>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Service = mongoose.model("Service", serviceSchema);

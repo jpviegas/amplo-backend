@@ -1,9 +1,12 @@
 import { Request, Response } from "express";
 import { Service } from "../models/Service";
 
-export const getAllServices = async (_req: Request, res: Response) => {
+export const getServicesByUser = async (req: Request, res: Response) => {
   try {
-    const services = await Service.find().sort({ createdAt: -1 }).lean();
+    const { id } = req.params;
+    const services = await Service.find({ user: id as Object })
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (!services || services.length === 0) {
       return res.status(200).json({

@@ -44,7 +44,7 @@ export interface IUser extends Document {
   dependentsQuantity: number;
   createdAt: Date;
   updatedAt: Date;
-  children: Array<{
+  children?: Array<{
     name: string;
     cpf: string;
     birthDate: string;
@@ -248,7 +248,7 @@ const userSchema = new mongoose.Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 userSchema.pre("save", async function (this: IUser) {
@@ -265,7 +265,7 @@ userSchema.pre("save", async function (this: IUser) {
 });
 
 userSchema.methods.comparePassword = async function (
-  candidatePassword: string
+  candidatePassword: string,
 ) {
   return bcrypt.compare(candidatePassword, this.password);
 };
