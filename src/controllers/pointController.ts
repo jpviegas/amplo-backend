@@ -1,7 +1,9 @@
 import console from "console";
 import { Request, Response } from "express";
 import mongoose from "mongoose";
+import { success } from "zod";
 import { Point } from "../models/Point";
+import { PointHistory } from "../models/PointHistory";
 import { Refeicao } from "../models/Refeicao";
 import { Transporte } from "../models/Transporte";
 import { User } from "../models/User";
@@ -88,7 +90,7 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
 
       return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
         2,
-        "0"
+        "0",
       )}`;
     };
 
@@ -98,7 +100,7 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
           hour: "2-digit",
           minute: "2-digit",
           timeZone: "UTC",
-        })
+        }),
       );
 
       const dayObject: any = {
@@ -163,7 +165,7 @@ export const registerPoint = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "ID do usuário inválido" });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate("city");
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
@@ -176,6 +178,27 @@ export const registerPoint = async (req: Request, res: Response) => {
 
     const now = new Date();
     const brasiliaTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+
+    const startOfDay = new Date(brasiliaTime);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(brasiliaTime);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const dailyPointsCount = await Point.countDocuments({
+      userId,
+      timestamp: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    });
+
+    if (dailyPointsCount >= 4) {
+      return res.status(400).json({
+        success,
+        message: "Limite de 4 registros diários atingido.",
+      });
+    }
 
     const newPoint = await Point.create({
       userId,
@@ -217,12 +240,20 @@ export const registerPoint = async (req: Request, res: Response) => {
       monthlyPoints.map((p) => {
         const d = new Date(p.timestamp);
         return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-      })
+      }),
     );
 
     const diasTrabalhados = uniqueDays.size;
-    const valorRefeicaoDiario = 25;
-    const valorTransporteDiario = 12;
+
+    let valorRefeicaoDiario = 0;
+    let valorTransporteDiario = 0;
+
+    if (user.city && typeof user.city === "object" && "meal" in user.city) {
+      const city = user.city as any;
+      valorRefeicaoDiario = city.meal || 0;
+      valorTransporteDiario = city.transport || 0;
+    }
+
     const valorRefeicaoTotal = diasTrabalhados * valorRefeicaoDiario;
     const valorTransporteTotal = diasTrabalhados * valorTransporteDiario;
 
@@ -236,7 +267,7 @@ export const registerPoint = async (req: Request, res: Response) => {
         month: mesNome,
         year: ano,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     await Transporte.findOneAndUpdate(
@@ -249,7 +280,19 @@ export const registerPoint = async (req: Request, res: Response) => {
         month: mesNome,
         year: ano,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
+    );
+
+    await PointHistory.findOneAndUpdate(
+      { user: userId, month: mesNome, year: ano },
+      {
+        pointsCount: monthlyPoints.length,
+        daysWorked: diasTrabalhados,
+        user: userId,
+        month: mesNome,
+        year: ano,
+      },
+      { upsert: true, new: true },
     );
 
     res.status(201).json({
@@ -262,6 +305,41 @@ export const registerPoint = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Erro ao registrar ponto",
+      error: error.message,
+    });
+  }
+};
+
+export const getPointHistoryByUser = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "ID do usuário inválido" });
+    }
+
+    const history = await PointHistory.find({ user: userId })
+      .sort({ year: -1, month: -1 })
+      .lean();
+
+    if (!history) {
+      return res.status(200).json({
+        success: true,
+        history,
+        message: "Nenhum histórico encontrado para este usuário",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      history,
+      message: "Histórico encontrado com sucesso",
+    });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Erro ao buscar histórico de pontos",
       error: error.message,
     });
   }

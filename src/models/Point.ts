@@ -35,7 +35,7 @@ const PointSchema = new mongoose.Schema<IPoint>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Point = mongoose.model<IPoint>("Point", PointSchema);

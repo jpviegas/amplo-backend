@@ -31,6 +31,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
         .limit(limit)
         .populate("companyId", "companyName")
         .populate("departmentId", "departmentName")
+        .populate("city", "city meal transport")
         .lean(),
       User.countDocuments(filter),
     ]);
@@ -86,6 +87,7 @@ export const getAllusersByCompany = async (req: Request, res: Response) => {
         .limit(limit)
         .populate("companyId", "companyName")
         .populate("departmentId", "departmentName")
+        .populate("city", "city meal transport")
         .lean(),
       User.countDocuments(filter),
     ]);
@@ -124,6 +126,7 @@ export const getUserById = async (req: Request, res: Response) => {
     const user = await User.findById(id)
       .populate("companyId", "companyName")
       .populate("departmentId", "departmentName")
+      .populate("city", "city meal transport")
       .lean();
 
     if (!user) {
@@ -282,7 +285,7 @@ export const authUser = async (req: Request, res: Response) => {
         companyId: user.companyId,
       },
       process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "24h" }
+      { expiresIn: "24h" },
     );
 
     const userResponse = user.toObject();

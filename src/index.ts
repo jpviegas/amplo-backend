@@ -4,6 +4,7 @@ import express from "express";
 import connectDB from "./config/db";
 import { protect } from "./middleware/authMiddleware";
 import abonoRoutes from "./routes/AbonoRoutes";
+import citiesRoutes from "./routes/CitiesRoutes";
 import companiesRoutes from "./routes/CompanyRoutes";
 import departmentsRoutes from "./routes/DepartmentRoutes";
 import noticesRoutes from "./routes/NoticesRoutes";
@@ -13,6 +14,7 @@ import timesheetRoutes from "./routes/TimesheetRoutes";
 import trainingRoutes from "./routes/TrainingRoutes";
 import transporteRoutes from "./routes/TransporteRoutes";
 import userRoutes from "./routes/UserRoutes";
+import documentRoutes from "./routes/documentRoutes";
 
 dotenv.config();
 
@@ -31,8 +33,10 @@ app.use("/api/transportes", transporteRoutes);
 app.use("/api/trainings", trainingRoutes);
 app.use("/api/services", servicesRoutes);
 app.use("/api/abonos", abonoRoutes);
+app.use("/api/cities", citiesRoutes);
 app.use("/api/companies", protect, companiesRoutes);
 app.use("/api/departments", protect, departmentsRoutes);
+app.use("/api/documents", documentRoutes);
 
 app.get("/", (_req, res) => {
   res.send("API is running...");

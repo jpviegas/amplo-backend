@@ -48,7 +48,16 @@ export const registerCompanySchema = z.object({
   cep: z.string().length(7, "O número do CEP é obrigatório"),
   address: z.string().min(1, "O endereço é obrigatório"),
   district: z.string().min(1, "O bairro é obrigatório"),
-  city: z.string().min(1, "A cidade é obrigatória"),
+  city: z
+    .object({
+      city: z.string().optional(),
+      meal: z.number().optional(),
+      transport: z.number().optional(),
+    })
+    .refine((data) => data.city || data.meal || data.transport, {
+      message:
+        "A cidade, o valor da refeição ou o valor do transporte é obrigatório",
+    }),
   uf: z.string().min(1, "A UF é obrigatória"),
   page: z.string().min(1, "O número da folha obrigatório"),
   registration: z.string().min(1, "A inscrição estadual é obrigatória"),
