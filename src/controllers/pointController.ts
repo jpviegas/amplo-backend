@@ -1,7 +1,6 @@
 import console from "console";
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import { success } from "zod";
 import { Point } from "../models/Point";
 import { PointHistory } from "../models/PointHistory";
 import { Refeicao } from "../models/Refeicao";
@@ -109,6 +108,8 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
         exit1: times[1] || "",
         entry2: times[2] || "",
         exit2: times[3] || "",
+        entry3: times[2] || "",
+        exit3: times[3] || "",
         totalHours: calculateTotalHours(timestamps),
       };
 
@@ -158,16 +159,22 @@ export const registerPoint = async (req: Request, res: Response) => {
     const { userId, location } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ message: "O ID do usuário é obrigatório" });
+      return res
+        .status(400)
+        .json({ success: false, message: "O ID do usuário é obrigatório" });
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: "ID do usuário inválido" });
+      return res
+        .status(400)
+        .json({ success: false, message: "ID do usuário inválido" });
     }
 
     const user = await User.findById(userId).populate("city");
     if (!user) {
-      return res.status(404).json({ message: "Usuário não encontrado" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Usuário não encontrado" });
     }
 
     if (!location || !location.latitude || !location.longitude) {
@@ -178,6 +185,19 @@ export const registerPoint = async (req: Request, res: Response) => {
 
     const now = new Date();
     const brasiliaTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+
+    const thirtySecondsAgo = new Date(brasiliaTime.getTime() - 30 * 1000);
+    const recentPoint = await Point.findOne({
+      userId,
+      timestamp: { $gte: thirtySecondsAgo, $lte: brasiliaTime },
+    });
+    if (recentPoint) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Não é possível registrar pontos em intervalos menores que 30 segundos",
+      });
+    }
 
     const startOfDay = new Date(brasiliaTime);
     startOfDay.setHours(0, 0, 0, 0);
@@ -193,10 +213,10 @@ export const registerPoint = async (req: Request, res: Response) => {
       },
     });
 
-    if (dailyPointsCount >= 4) {
+    if (dailyPointsCount >= 6) {
       return res.status(400).json({
-        success,
-        message: "Limite de 4 registros diários atingido.",
+        success: false,
+        message: "Limite de 6 registros diários atingido.",
       });
     }
 
@@ -315,7 +335,9 @@ export const getPointHistoryByUser = async (req: Request, res: Response) => {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: "ID do usuário inválido" });
+      return res
+        .status(400)
+        .json({ success: false, message: "ID do usuário inválido" });
     }
 
     const history = await PointHistory.find({ user: userId })
