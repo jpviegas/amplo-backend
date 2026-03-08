@@ -15,6 +15,7 @@ import trainingRoutes from "./routes/TrainingRoutes";
 import transporteRoutes from "./routes/TransporteRoutes";
 import userRoutes from "./routes/UserRoutes";
 import documentRoutes from "./routes/documentRoutes";
+import zapSignRoutes from "./routes/ZapSignRoutes";
 
 dotenv.config();
 
@@ -24,6 +25,13 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log("REQ", { method: req.method, url: req.originalUrl, contentType: req.headers["content-type"] });
+  res.on("finish", () => {
+    console.log("RES", { status: res.statusCode, method: req.method, url: req.originalUrl });
+  });
+  next();
+});
 
 app.use("/api/auth", userRoutes);
 app.use("/api/timesheet", timesheetRoutes);
@@ -37,6 +45,12 @@ app.use("/api/cities", citiesRoutes);
 app.use("/api/companies", protect, companiesRoutes);
 app.use("/api/departments", protect, departmentsRoutes);
 app.use("/api/documents", documentRoutes);
+// ZapSign integration endpoints (mounted at root to match required paths)
+app.use("/", zapSignRoutes);
+app.use((err: any, _req: express.Request, _res: express.Response, next: express.NextFunction) => {
+  console.error("ERR", { status: err?.status, message: err?.message, data: err?.response?.data });
+  next(err);
+});
 
 app.get("/", (_req, res) => {
   res.send("API is running...");
