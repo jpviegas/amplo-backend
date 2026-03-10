@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    const dbURI = process.env.MONGO_URI || 'mongodb://localhost:27017/amplo-backend';
+    const dbURI = process.env.MONGO_URI || 'mongodb+srv://jpviegas:vM0x2heiD4082dfx@cluster0.l5pbm.mongodb.net/';
     const conn = await mongoose.connect(dbURI);
     
     console.log(`MongoDB Connected: ${conn.connection.host}`);
