@@ -15,6 +15,7 @@ type CreateDocResponse = {
   status: "pending" | "signed";
   name: string;
   signers: CreateDocResponseSigner[];
+  created_at?: string;
 };
 
 export type CreateDocPayloadSigner = {
@@ -30,18 +31,33 @@ export type CreateDocPayload = {
   signers: CreateDocPayloadSigner[];
 };
 
-function getApiKey(): string {
-  const fromEnv = process.env.ZAPSIGN_API_KEY;
-  const fallback =
-    "e148c4d0-924e-43d0-850f-5c65ef383694a68aa736-0bca-4d95-83c6-5d390d091f93";
-  return fromEnv && fromEnv.trim().length > 0 ? fromEnv : fallback;
+function cleanEnv(value: string | undefined): string {
+  return (value || "").trim().replace(/^[`"' ]+|[`"' ]+$/g, "");
+}
+
+function getApiToken(): string {
+  const token = cleanEnv(
+    process.env.ZAPSIGN_API_TOKEN || process.env.ZAPSIGN_API_KEY,
+  );
+  if (!token) {
+    throw new Error("ZAPSIGN_API_TOKEN (ou ZAPSIGN_API_KEY) não definido");
+  }
+  return token;
+}
+
+function getApiBaseUrl(): string {
+  const base =
+    cleanEnv(process.env.ZAPSIGN_API_URL) ||
+    "https://sandbox.api.zapsign.com.br/api/v1";
+  return base.replace(/\/+$/g, "");
 }
 
 export async function createDocument(
   payload: CreateDocPayload,
 ): Promise<CreateDocResponse> {
-  const apiKey = getApiKey();
-  const url = "https://api.zapsign.com.br/api/v1/docs/";
+  const apiToken = getApiToken();
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/docs/`;
 
   try {
     console.log("ZapSign request createDocument", {
@@ -49,11 +65,13 @@ export async function createDocument(
       name: payload.name,
       signersCount: payload.signers?.length ?? 0,
       hasBase64: !!payload.base64_pdf,
-      apiKeyMasked: apiKey ? `${apiKey.substring(0, 6)}...${apiKey.slice(-4)}` : null,
+      apiTokenMasked: apiToken
+        ? `${apiToken.substring(0, 6)}...${apiToken.slice(-4)}`
+        : null,
     });
     const { data, status } = await axios.post<CreateDocResponse>(url, payload, {
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
       timeout: 20000,
@@ -75,5 +93,4 @@ export async function createDocument(
       message: error?.message,
     };
   }
-
 }

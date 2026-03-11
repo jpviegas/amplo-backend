@@ -1,14 +1,26 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { User } from "../models/User";
+import {
+  findByToken,
+  listDocumentsForSignerEmail,
+  saveZapSignDocument,
+  updateSignersByToken,
+  updateStatusByToken,
+} from "../repositories/zapSignRepository";
 import { createDocument } from "../services/zapSignService";
-import { saveZapSignDocument, findByToken, updateStatusByToken, updateSignersByToken } from "../repositories/zapSignRepository";
-
-const fixedSignerEmail = "josiassxz@gmail.com";
 
 const createDocSchema = z.object({
   userId: z.string().min(1, "userId é obrigatório"),
-  signers: z.array(z.string().email("Email inválido")).min(1, "Ao menos 1 email"),
+  signers: z
+    .array(z.string().email("Email inválido"))
+    .min(1, "Ao menos 1 email"),
+});
+
+const listDocsSchema = z.object({
+  email: z.string().email("Email inválido"),
+  only_pending: z.string().optional(),
+  only_to_sign: z.string().optional(),
 });
 
 export async function postDocuments(req: Request, res: Response) {
@@ -23,8 +35,11 @@ export async function postDocuments(req: Request, res: Response) {
       signers: Array.isArray(req.body.signers)
         ? req.body.signers
         : typeof req.body.signers === "string"
-        ? req.body.signers.split(",").map((s: string) => s.trim()).filter(Boolean)
-        : [],
+          ? req.body.signers
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [],
     });
 
     if (!parsed.success) {
@@ -56,15 +71,11 @@ export async function postDocuments(req: Request, res: Response) {
     const userEmail = user.email;
 
     const uniqueEmails = new Set<string>([
-      fixedSignerEmail.toLowerCase(),
       userEmail.toLowerCase(),
       ...signers.map((e) => e.toLowerCase()),
     ]);
 
     const finalEmails = Array.from(uniqueEmails);
-    if (!finalEmails.includes(fixedSignerEmail.toLowerCase())) {
-      finalEmails.push(fixedSignerEmail.toLowerCase());
-    }
     if (!finalEmails.includes(userEmail.toLowerCase())) {
       finalEmails.push(userEmail.toLowerCase());
     }
@@ -127,11 +138,14 @@ export async function postDocuments(req: Request, res: Response) {
         token: s.token,
         status: s.status,
         name: s.name,
-        email: s.email,
+        email: s.email ? s.email.toLowerCase() : s.email,
         phone_country: s.phone_country,
         phone_number: s.phone_number,
         signed_at: s.signed_at ? new Date(s.signed_at) : null,
       })),
+      zapsign_created_at: zapsignResp.created_at
+        ? new Date(zapsignResp.created_at)
+        : null,
     });
 
     return res.status(201).json({
@@ -145,6 +159,7 @@ export async function postDocuments(req: Request, res: Response) {
         status: saved.status,
         signers: saved.signers,
         created_at: saved.created_at,
+        zapsign_created_at: saved.zapsign_created_at ?? null,
       },
     });
   } catch (err: any) {
@@ -157,6 +172,44 @@ export async function postDocuments(req: Request, res: Response) {
   }
 }
 
+export async function listDocuments(req: Request, res: Response) {
+  const parsed = listDocsSchema.safeParse({
+    email: req.query.email,
+    only_pending: req.query.only_pending,
+    only_to_sign: req.query.only_to_sign,
+  });
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: "Query inválida",
+      issues: parsed.error.issues,
+    });
+  }
+
+  const { email, only_pending, only_to_sign } = parsed.data;
+  const onlyPending =
+    typeof only_pending === "string" ? only_pending === "true" : true;
+  const onlyToSign =
+    typeof only_to_sign === "string" ? only_to_sign === "true" : true;
+
+  const docs = await listDocumentsForSignerEmail(email, {
+    onlyPending,
+    onlyToSign,
+  });
+  const normalizedEmail = email.trim().toLowerCase();
+  const signers = docs.flatMap((d) =>
+    (d.signers || []).filter(
+      (s) => (s.email || "").toLowerCase() === normalizedEmail,
+    ),
+  );
+
+  return res.status(200).json({
+    success: true,
+    signers,
+  });
+}
+
 // Webhook payload types are varied; we handle the common fields: token, status, signers[]
 export async function zapSignWebhook(req: Request, res: Response) {
   try {
@@ -166,12 +219,17 @@ export async function zapSignWebhook(req: Request, res: Response) {
     const signers: Array<any> = Array.isArray(body.signers) ? body.signers : [];
 
     if (!token) {
-      return res.status(400).json({ success: false, message: "Token do documento ausente" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Token do documento ausente" });
     }
 
     const existing = await findByToken(token);
     if (!existing) {
-      return res.status(404).json({ success: false, message: "Documento não encontrado pelo token" });
+      return res.status(404).json({
+        success: false,
+        message: "Documento não encontrado pelo token",
+      });
     }
 
     console.log("POST /webhooks/zapsign received", {
@@ -184,7 +242,7 @@ export async function zapSignWebhook(req: Request, res: Response) {
       token: s.token,
       status: s.status,
       name: s.name,
-      email: s.email,
+      email: s.email ? String(s.email).toLowerCase() : s.email,
       phone_country: s.phone_country,
       phone_number: s.phone_number,
       signed_at: s.signed_at ? new Date(s.signed_at) : null,
@@ -195,7 +253,9 @@ export async function zapSignWebhook(req: Request, res: Response) {
     }
 
     const userSigned = normalizedSigners.some(
-      (s) => (s.email || "").toLowerCase() === (existing.userEmail || "").toLowerCase() && s.status === "signed",
+      (s) =>
+        (s.email || "").toLowerCase() ===
+          (existing.userEmail || "").toLowerCase() && s.status === "signed",
     );
 
     if (userSigned || status === "signed") {
@@ -204,7 +264,8 @@ export async function zapSignWebhook(req: Request, res: Response) {
 
     console.log("POST /webhooks/zapsign processed", {
       token,
-      updatedStatus: userSigned || status === "signed" ? "signed" : existing.status,
+      updatedStatus:
+        userSigned || status === "signed" ? "signed" : existing.status,
     });
 
     res.status(200).json({ success: true });
