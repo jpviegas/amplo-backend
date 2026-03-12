@@ -1,4 +1,3 @@
-import console from "console";
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Point } from "../models/Point";
@@ -7,19 +6,92 @@ import { Refeicao } from "../models/Refeicao";
 import { Transporte } from "../models/Transporte";
 import { User } from "../models/User";
 
-export const getAllTimesheets = async (_req: Request, res: Response) => {
+export const getAllTimesheets = async (req: Request, res: Response) => {
   try {
-    const points = await Point.find().sort({ timestamp: 1 }).lean();
+    const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+    const rawLimit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(Math.max(rawLimit, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const usersCollection = User.collection.name;
+
+    const [{ data, totalCount }] = await Point.aggregate([
+      { $sort: { timestamp: -1 } },
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $addFields: {
+                userIdObj: {
+                  $convert: {
+                    input: "$userId",
+                    to: "objectId",
+                    onError: null,
+                    onNull: null,
+                  },
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: usersCollection,
+                localField: "userIdObj",
+                foreignField: "_id",
+                as: "user",
+              },
+            },
+            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+            { $addFields: { name: "$user.name" } },
+            { $project: { user: 0, userIdObj: 0 } },
+          ],
+          totalCount: [{ $count: "total" }],
+        },
+      },
+    ]);
+
+    const total = totalCount?.[0]?.total || 0;
+    const points = (data || []).map((p: any) => ({
+      ...p,
+      name: typeof p?.name === "string" ? p.name : null,
+    }));
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     if (!points || points.length === 0) {
       return res.status(200).json({
         success: true,
-        points,
+        pagination: {
+          total,
+          page,
+          totalPages,
+          limit,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null,
+        },
+        count: 0,
+        points: [],
         message: "Nenhum ponto encontrado",
       });
     }
     res.status(200).json({
       success: true,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null,
+      },
+      count: points.length,
       points,
       message: "Lista de pontos encontrada com sucesso",
     });
@@ -44,7 +116,7 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
         .lean();
       return res.status(200).json({
         success: true,
-        message: "Último ponto do usuário encontrado com sucesso",
+        message: "Ponto registrado com sucesso",
         point,
       });
     }
