@@ -79,10 +79,28 @@ export const getDepartment = async (req: Request, res: Response) => {
 
 export const registerDepartment = async (req: Request, res: Response) => {
   const values = req.body;
+  console.log(values);
+
   try {
+    const rawName = values?.department;
+    if (!rawName || typeof rawName !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "O nome é obrigatório",
+      });
+    }
+
+    const departmentName = rawName.trim();
+    const escapeRegex = (input: string) =>
+      input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     const existingDepartment = await Department.findOne({
-      departmentName: values.departmentName,
+      departmentName: {
+        $regex: `^${escapeRegex(departmentName)}$`,
+        $options: "i",
+      },
     }).lean();
+    console.log(existingDepartment);
 
     if (existingDepartment) {
       return res.status(409).json({
@@ -91,11 +109,11 @@ export const registerDepartment = async (req: Request, res: Response) => {
       });
     }
 
-    const createNewDepartment = new Department(values);
+    const createNewDepartment = new Department({ ...values, departmentName });
     await createNewDepartment.save();
     res.status(201).json({
       success: true,
-      message: `O departamento ${values.departmentName} foi criado com sucesso.`,
+      message: `O departamento ${departmentName} foi criado com sucesso.`,
     });
   } catch (error: any) {
     if (error.name === "ValidationError") {
@@ -124,7 +142,33 @@ export const updateDepartment = async (req: Request, res: Response) => {
     if (!existingDepartment) {
       return res.status(404).json({
         success: false,
-        message: "Funcionário não encontrado",
+        message: "Departamento não encontrado",
+      });
+    }
+
+    const rawName = values?.departmentName;
+    if (!rawName || typeof rawName !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "O nome é obrigatório",
+      });
+    }
+
+    const departmentName = rawName.trim();
+    const escapeRegex = (input: string) =>
+      input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const existingDepartmentName = await Department.findOne({
+      departmentName: {
+        $regex: `^${escapeRegex(departmentName)}$`,
+        $options: "i",
+      },
+    }).lean();
+
+    if (existingDepartmentName) {
+      return res.status(409).json({
+        success: false,
+        message: "Departamento já cadastrado com este nome",
       });
     }
 
@@ -146,7 +190,34 @@ export const updateDepartment = async (req: Request, res: Response) => {
 
     res.status(500).json({
       success: false,
-      message: "Erro ao atualizar o funcionário.",
+      message: "Erro ao atualizar o departamento.",
+      error: error.message,
+    });
+  }
+};
+
+export const deleteDepartment = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const existingDepartment = await Department.findById(id).lean();
+
+    if (!existingDepartment) {
+      return res.status(404).json({
+        success: false,
+        message: "Departamento não encontrado",
+      });
+    }
+
+    await Department.findByIdAndDelete(id);
+    res.status(200).json({
+      success: true,
+      message: `O departamento ${existingDepartment.departmentName} foi excluído com sucesso.`,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao excluir o departamento.",
       error: error.message,
     });
   }

@@ -232,9 +232,7 @@ export const updateUser = async (req: Request, res: Response) => {
     const profile = await User.findByIdAndUpdate(id, values, { new: true });
     res.status(200).json({
       success: true,
-      message: `O funcionário ${
-        values.name || existingUser.name
-      } foi atualizado com sucesso.`,
+      message: "Dados atualizados com sucesso",
       profile,
     });
   } catch (error: any) {

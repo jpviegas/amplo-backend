@@ -87,11 +87,11 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     pis: {
       type: String,
-      required: [true, "O PIS é obrigatório"],
+      // required: [true, "O PIS é obrigatório"],
     },
     cpf: {
       type: String,
-      required: [true, "O CPF é obrigatório"],
+      // required: [true, "O CPF é obrigatório"],
       length: 11,
       validate: {
         validator: function (v: string) {
@@ -103,16 +103,16 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     registration: {
       type: String,
-      required: [true, "O número de matrícula é obrigatório"],
+      // required: [true, "O número de matrícula é obrigatório"],
     },
     admissionDate: {
       type: String,
-      required: [true, "A data de admissão é obrigatória"],
+      // required: [true, "A data de admissão é obrigatória"],
     },
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
-      required: true,
+      // required: true,
     },
     workingHours: {
       type: String,
@@ -124,12 +124,12 @@ const userSchema = new mongoose.Schema<IUser>(
         values: ["active", "inactive"],
         message: 'Status deve ser "Ativo" ou "Inativo"',
       },
-      required: true,
+      // required: true,
     },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
-      required: true,
+      // required: true,
     },
     costCenter: {
       type: String,
@@ -152,7 +152,7 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     rg: {
       type: String,
-      required: [true, "O RG é obrigatório"],
+      // required: [true, "O RG é obrigatório"],
       length: 9,
       validate: {
         validator: function (v: string) {
@@ -164,7 +164,7 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     birthDate: {
       type: String,
-      required: [true, "A data de nascimento é obrigatória"],
+      // required: [true, "A data de nascimento é obrigatória"],
       length: 8,
       validate: {
         validator: function (v: string) {
