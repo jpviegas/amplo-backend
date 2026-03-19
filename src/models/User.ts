@@ -50,6 +50,12 @@ export interface IUser extends Document {
     cpf: string;
     birthDate: string;
   }>;
+  firstAccessTokenHash?: string;
+  firstAccessTokenExpiresAt?: Date;
+  firstAccessTokenUsedAt?: Date;
+  passwordResetTokenHash?: string;
+  passwordResetTokenExpiresAt?: Date;
+  passwordResetTokenUsedAt?: Date;
   comparePassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -247,6 +253,24 @@ const userSchema = new mongoose.Schema<IUser>(
         birthDate: { type: String },
       },
     ],
+    firstAccessTokenHash: {
+      type: String,
+    },
+    firstAccessTokenExpiresAt: {
+      type: Date,
+    },
+    firstAccessTokenUsedAt: {
+      type: Date,
+    },
+    passwordResetTokenHash: {
+      type: String,
+    },
+    passwordResetTokenExpiresAt: {
+      type: Date,
+    },
+    passwordResetTokenUsedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
