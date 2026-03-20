@@ -8,9 +8,9 @@ export interface AuthRequest extends Request {
 export const protect = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
-  let token;
+  let token: string | undefined;
 
   if (req.headers.authorization) {
     try {
@@ -18,20 +18,26 @@ export const protect = async (
         ? req.headers.authorization.split(" ")[1]
         : req.headers.authorization;
 
-      req.user = await User.findById(token).select("-password");
+      const email = (token || "").toLowerCase().trim();
+      if (!email) {
+        return res.status(401).json({ message: "Não autorizado" });
+      }
+
+      req.user = await User.findOne({ email }).select("-password");
 
       if (!req.user) {
-        return res
-          .status(401)
-          .json({ message: "Not authorized, user not found" });
+        return res.status(401).json({ message: "Não autorizado" });
+      }
+
+      if (req.user.role !== "admin") {
+        return res.status(403).json({ message: "Não autorizado" });
       }
 
       next();
     } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: "Not authorized, invalid ID" });
+      res.status(401).json({ message: "Não autorizado" });
     }
   } else {
-    res.status(401).json({ message: "Not authorized, no token provided" });
+    res.status(401).json({ message: "Não autorizado" });
   }
 };

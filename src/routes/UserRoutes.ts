@@ -10,7 +10,6 @@ import {
 
 const router = express.Router();
 
-// router.use(protect);
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
 router.post("/login", authUser);

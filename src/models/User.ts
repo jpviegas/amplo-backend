@@ -83,7 +83,7 @@ const userSchema = new mongoose.Schema<IUser>(
         message:
           "A senha deve conter pelo menos 1 letra maiúscula, 1 caractere especial, 1 número e mínimo de 8 caracteres",
       },
-      // select: false,
+      select: false,
     },
     pis: {
       type: String,

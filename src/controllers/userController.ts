@@ -262,7 +262,9 @@ export const authUser = async (req: Request, res: Response) => {
         .json({ success: false, message: "Email e senha são obrigatórios" });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+      "+password",
+    );
 
     if (!user) {
       return res.status(401).json({ message: "Email ou senha incorreta" });
@@ -296,7 +298,10 @@ export const authUser = async (req: Request, res: Response) => {
       message: "Login com sucesso!",
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };
 
