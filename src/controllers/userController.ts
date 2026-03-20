@@ -1,12 +1,102 @@
 import { Request, Response } from "express";
+import { createHash, randomBytes } from "crypto";
 
 import jwt from "jsonwebtoken";
 
 import { IUser, User } from "../models/User";
+import { sendTemplateEmail } from "../services/resendService";
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || "secret", {
     expiresIn: "30d",
+  });
+};
+
+const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
+type PasswordTokenType = "first-access" | "reset-password";
+
+const getFrontendBaseUrl = () => {
+  return (
+    process.env.FRONTEND_URL?.trim().replace(/\/+$/g, "") ||
+    "http://localhost:3000"
+  );
+};
+
+const createPasswordToken = () => {
+  const token = randomBytes(32).toString("hex");
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  return { token, tokenHash };
+};
+
+const generateTemporaryPassword = () => {
+  return `Temp@${randomBytes(8).toString("hex")}A1`;
+};
+
+const getPasswordTokenExpiresAt = () => {
+  const ttlHours = Number(process.env.PASSWORD_TOKEN_TTL_HOURS || "24");
+  const ttlMs = Number.isNaN(ttlHours) ? 24 * 60 * 60 * 1000 : ttlHours * 60 * 60 * 1000;
+  return new Date(Date.now() + ttlMs);
+};
+
+const parsePasswordTokenType = (value: unknown): PasswordTokenType | null => {
+  if (value === "first-access" || value === "reset-password") {
+    return value;
+  }
+  return null;
+};
+
+const setPasswordTokenData = (
+  user: IUser,
+  type: PasswordTokenType,
+  tokenHash: string,
+) => {
+  const expiresAt = getPasswordTokenExpiresAt();
+
+  if (type === "first-access") {
+    user.firstAccessTokenHash = tokenHash;
+    user.firstAccessTokenExpiresAt = expiresAt;
+    user.firstAccessTokenUsedAt = undefined;
+    return;
+  }
+
+  user.passwordResetTokenHash = tokenHash;
+  user.passwordResetTokenExpiresAt = expiresAt;
+  user.passwordResetTokenUsedAt = undefined;
+};
+
+const clearPasswordTokenData = (user: IUser, type: PasswordTokenType) => {
+  if (type === "first-access") {
+    user.firstAccessTokenHash = undefined;
+    user.firstAccessTokenExpiresAt = undefined;
+    user.firstAccessTokenUsedAt = new Date();
+    return;
+  }
+
+  user.passwordResetTokenHash = undefined;
+  user.passwordResetTokenExpiresAt = undefined;
+  user.passwordResetTokenUsedAt = new Date();
+};
+
+const findUserByValidToken = async (
+  token: string,
+  type: PasswordTokenType,
+) => {
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const now = new Date();
+
+  if (type === "first-access") {
+    return User.findOne({
+      firstAccessTokenHash: tokenHash,
+      firstAccessTokenExpiresAt: { $gt: now },
+      firstAccessTokenUsedAt: { $exists: false },
+    });
+  }
+
+  return User.findOne({
+    passwordResetTokenHash: tokenHash,
+    passwordResetTokenExpiresAt: { $gt: now },
+    passwordResetTokenUsedAt: { $exists: false },
   });
 };
 
@@ -151,11 +241,13 @@ export const getUserById = async (req: Request, res: Response) => {
 };
 
 export const registerUser = async (req: Request, res: Response) => {
-  const values: IUser = req.body;
+  const values = req.body as Partial<IUser>;
 
   try {
+    const normalizedEmail = values.email?.toLowerCase().trim();
+
     const existingUser = await User.findOne({
-      $or: [{ cpf: values.cpf }, { rg: values.rg }, { email: values.email }],
+      $or: [{ cpf: values.cpf }, { rg: values.rg }, { email: normalizedEmail }],
     }).lean();
 
     if (existingUser) {
@@ -179,16 +271,39 @@ export const registerUser = async (req: Request, res: Response) => {
       }
     }
 
-    const user = await User.create(values);
-    // const user = new User(values);
-    // await user.save();
+    const userPayload = {
+      ...values,
+      email: normalizedEmail,
+      password: values.password || generateTemporaryPassword(),
+    };
+
+    const user = await User.create(userPayload);
+    const { token, tokenHash } = createPasswordToken();
+    setPasswordTokenData(user, "first-access", tokenHash);
+    await user.save();
+
+    const firstAccessLink = `${getFrontendBaseUrl()}/cadastro-senha/${token}`;
+
+    await sendTemplateEmail({
+      to: user.email,
+      subject: "Defina sua senha de acesso",
+      title: "Seu cadastro foi criado",
+      description:
+        "Para acessar sua conta pela primeira vez, defina sua senha no link abaixo.",
+      actionUrl: firstAccessLink,
+      actionLabel: "Definir senha",
+      supportText:
+        "Se você não reconhece este cadastro, ignore este e-mail e entre em contato com o suporte.",
+    });
 
     if (user) {
+      const userResponse = user.toObject();
+      delete (userResponse as any).password;
+
       res.status(201).json({
         success: true,
         _id: user._id as unknown as string,
-        user,
-        // name: values.name,
+        user: userResponse,
         token: generateToken(user._id as unknown as string),
         message: "Cadastro realizado com sucesso!",
       });
@@ -309,8 +424,6 @@ export const changePassword = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { currentPassword, newPassword } = req.body;
 
-  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-
   if (!passwordRegex.test(newPassword)) {
     return res.status(400).json({
       success: false,
@@ -343,6 +456,192 @@ export const changePassword = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Erro ao alterar senha",
+      error: error.message,
+    });
+  }
+};
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  const email = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email é obrigatório",
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "Se o email existir, enviaremos as instruções de reset.",
+      });
+    }
+
+    const { token, tokenHash } = createPasswordToken();
+    setPasswordTokenData(user, "reset-password", tokenHash);
+    await user.save();
+
+    const resetLink = `${getFrontendBaseUrl()}/reset-senha/${token}`;
+
+    await sendTemplateEmail({
+      to: user.email,
+      subject: "Redefinição de senha",
+      title: "Solicitação de redefinição de senha",
+      description:
+        "Recebemos uma solicitação para redefinir sua senha. Clique no botão abaixo para continuar.",
+      actionUrl: resetLink,
+      actionLabel: "Redefinir senha",
+      supportText:
+        "Se você não solicitou essa alteração, ignore este e-mail com segurança.",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Email de reset enviado com sucesso.",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao solicitar redefinição de senha",
+      error: error.message,
+    });
+  }
+};
+
+export const validatePasswordToken = async (req: Request, res: Response) => {
+  const token = String(req.body?.token || "").trim();
+  const type = parsePasswordTokenType(req.body?.type);
+
+  if (!token || !type) {
+    return res.status(400).json({
+      success: false,
+      message: "Token e tipo são obrigatórios",
+    });
+  }
+
+  try {
+    const user = await findUserByValidToken(token, type);
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Token inválido ou expirado",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      valid: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao validar token",
+      error: error.message,
+    });
+  }
+};
+
+export const consumePasswordToken = async (req: Request, res: Response) => {
+  const token = String(req.body?.token || "").trim();
+  const type = parsePasswordTokenType(req.body?.type);
+  const newPassword = String(req.body?.newPassword || "");
+
+  if (!token || !type || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Token, tipo e nova senha são obrigatórios",
+    });
+  }
+
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "A nova senha deve conter pelo menos 1 letra maiúscula, 1 caractere especial, 1 número e mínimo de 8 caracteres",
+    });
+  }
+
+  try {
+    const user = await findUserByValidToken(token, type);
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Token inválido ou expirado",
+      });
+    }
+
+    user.password = newPassword;
+    clearPasswordTokenData(user, type);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        type === "first-access"
+          ? "Senha cadastrada com sucesso"
+          : "Senha redefinida com sucesso",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao consumir token de senha",
+      error: error.message,
+    });
+  }
+};
+
+export const sendTestEmail = async (req: Request, res: Response) => {
+  const to = String(req.body?.to || "")
+    .trim()
+    .toLowerCase();
+  const actionUrl = String(req.body?.actionUrl || "http://localhost:3000/cadastro-senha/token").trim();
+  const subject = String(req.body?.subject || "Teste de envio de e-mail");
+
+  if (!to) {
+    return res.status(400).json({
+      success: false,
+      message: "Campo 'to' é obrigatório",
+    });
+  }
+
+  try {
+    await sendTemplateEmail({
+      to,
+      subject,
+      title: "Teste de template Resend LUCAS",
+      description:
+        "Este e-mail é um teste manual disparado pelo Postman para validar integração com Resend.",
+      actionUrl,
+      actionLabel: "Abrir link de teste",
+      supportText: "Se recebeu, a integração está funcionando corretamente.",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "E-mail de teste enviado com sucesso.",
+      data: {
+        to,
+        subject,
+        actionUrl,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao enviar e-mail de teste",
       error: error.message,
     });
   }
