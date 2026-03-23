@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { User } from "../models/User";
+import { ZapSignDocumentModel } from "../models/ZapSignDocument";
 import {
   findByToken,
   listDocumentsForSignerEmail,
@@ -18,7 +19,10 @@ const createDocSchema = z.object({
 });
 
 const listDocsSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.preprocess((v) => {
+    const s = typeof v === "string" ? v.trim() : v;
+    return s === "" ? undefined : s;
+  }, z.string().email("Email inválido").optional()),
   only_pending: z.string().optional(),
   only_to_sign: z.string().optional(),
 });
@@ -189,9 +193,22 @@ export async function listDocuments(req: Request, res: Response) {
 
   const { email, only_pending, only_to_sign } = parsed.data;
   const onlyPending =
-    typeof only_pending === "string" ? only_pending === "true" : true;
+    typeof only_pending === "string" ? only_pending === "true" : !!email;
   const onlyToSign =
-    typeof only_to_sign === "string" ? only_to_sign === "true" : true;
+    typeof only_to_sign === "string" ? only_to_sign === "true" : !!email;
+
+  if (!email) {
+    const filter = onlyPending ? { status: "pending" } : {};
+    const documents = await ZapSignDocumentModel.find(filter)
+      .sort({ created_at: -1 })
+      .lean();
+    return res.status(200).json({
+      success: true,
+      signers: (documents || [])
+        .flatMap((d: any) => d.signers || [])
+        .filter((s: any) => (onlyToSign ? s?.status !== "signed" : true)),
+    });
+  }
 
   const docs = await listDocumentsForSignerEmail(email, {
     onlyPending,

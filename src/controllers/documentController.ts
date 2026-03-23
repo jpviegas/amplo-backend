@@ -4,7 +4,7 @@ import { User } from "../models/User";
 
 export const getAllDocuments = async (req: Request, res: Response) => {
   try {
-    const { userId, type } = req.query;
+    const { userId, type, search } = req.query;
     const filter: any = {};
 
     if (userId) {
@@ -15,15 +15,58 @@ export const getAllDocuments = async (req: Request, res: Response) => {
       filter.type = type;
     }
 
+    const rawSearch =
+      search !== undefined && search !== null ? String(search).trim() : "";
+    if (!rawSearch) {
+      const documents = await DocumentModel.find(filter)
+        .select("-data")
+        .populate("userId", "name email")
+        .sort({ createdAt: -1 })
+        .lean();
+      const documentsWithUserName = documents.map((doc: any) => ({
+        ...doc,
+        userName:
+          doc.userId && typeof doc.userId === "object" ? doc.userId.name : null,
+      }));
+      return res.status(200).json({
+        success: true,
+        message: "Documentos encontrados com sucesso.",
+        documents: documentsWithUserName,
+      });
+    }
+
+    {
+      const escaped = rawSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const searchRegex = new RegExp(escaped, "i");
+
+      const users = await User.find({ email: searchRegex })
+        .select("_id")
+        .lean();
+      const userIds = users.map((u: any) => u._id);
+
+      filter.$or = [
+        { title: { $regex: escaped, $options: "i" } },
+        { filename: { $regex: escaped, $options: "i" } },
+        ...(userIds.length ? [{ userId: { $in: userIds } }] : []),
+      ];
+    }
+
     const documents = await DocumentModel.find(filter)
       .select("-data")
       .populate("userId", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const documentsWithUserName = documents.map((doc: any) => ({
+      ...doc,
+      userName:
+        doc.userId && typeof doc.userId === "object" ? doc.userId.name : null,
+    }));
 
     return res.status(200).json({
       success: true,
       message: "Documentos encontrados com sucesso.",
-      documents,
+      documents: documentsWithUserName,
     });
   } catch (error: any) {
     console.error("Erro ao buscar documentos:", error);
@@ -224,7 +267,7 @@ export class DocumentController {
       // Inline allows viewing in browser (e.g. PDF), while still allowing save.
       res.setHeader(
         "Content-Disposition",
-        `inline; filename="${document.filename}"`
+        `inline; filename="${document.filename}"`,
       );
       res.send(document.data);
     } catch (error: any) {

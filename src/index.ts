@@ -57,21 +57,21 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/positions", positionsRoutes);
 // ZapSign integration endpoints (mounted at root to match required paths)
 app.use("/", zapSignRoutes);
-app.use(
-  (
-    err: any,
-    _req: express.Request,
-    _res: express.Response,
-    next: express.NextFunction,
-  ) => {
-    console.error("ERR", {
-      status: err?.status,
-      message: err?.message,
-      data: err?.response?.data,
-    });
-    next(err);
-  },
-);
+// app.use(
+//   (
+//     err: any,
+//     _req: express.Request,
+//     _res: express.Response,
+//     next: express.NextFunction,
+//   ) => {
+//     console.error("ERR", {
+//       status: err?.status,
+//       message: err?.message,
+//       data: err?.response?.data,
+//     });
+//     next(err);
+//   },
+// );
 
 app.get("/", (_req, res) => {
   res.send("API is running...");

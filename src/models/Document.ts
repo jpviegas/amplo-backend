@@ -4,7 +4,16 @@ import { IUser } from "./User";
 export interface IDocument extends Document {
   userId: mongoose.Types.ObjectId | IUser;
   title: string;
-  type: "contrato" | "codigo_conduta" | "termos" | "demais_documentos";
+  type:
+    | "codigo_conduta"
+    | "contrato"
+    | "diversos"
+    | "ficha_epi"
+    | "ficha_egistro"
+    | "politica_interna"
+    | "saude_ocupacional"
+    | "termos"
+    | "demais_documentos";
   filename: string;
   data: Buffer;
   mimetype: string;
@@ -27,7 +36,17 @@ const documentSchema = new Schema<IDocument>(
     type: {
       type: String,
       enum: {
-        values: ["contrato", "codigo_conduta", "termos", "demais_documentos"],
+        values: [
+          "codigo_conduta",
+          "contrato",
+          "diversos",
+          "ficha_epi",
+          "ficha_egistro",
+          "politica_interna",
+          "saude_ocupacional",
+          "termos",
+          "demais_documentos",
+        ],
         message: "Tipo de documento inválido",
       },
       required: [true, "O tipo do documento é obrigatório"],

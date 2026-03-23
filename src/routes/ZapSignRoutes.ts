@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { upload } from "../config/upload";
-import { listDocuments, postDocuments, zapSignWebhook } from "../controllers/zapSignController";
+import {
+  listDocuments,
+  postDocuments,
+  zapSignWebhook,
+} from "../controllers/zapSignController";
 
 const router = Router();
 
@@ -9,4 +13,3 @@ router.get("/documents", listDocuments);
 router.post("/webhooks/zapsign", zapSignWebhook);
 
 export default router;
-
