@@ -1,5 +1,59 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { Service } from "../models/Service";
+import { User } from "../models/User";
+
+export const getAllServices = async (_req: Request, res: Response) => {
+  try {
+    const services = await Service.find().sort({ createdAt: -1 }).lean();
+
+    if (!services || services.length === 0) {
+      return res.status(200).json({
+        success: true,
+        services: [],
+        message: "Nenhum atendimento encontrado",
+      });
+    }
+
+    const userIds = Array.from(
+      new Set(
+        services
+          .map((s: any) => s.user)
+          .filter(Boolean)
+          .map((id: any) => String(id)),
+      ),
+    );
+
+    const userObjectIds = userIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    const users = await User.find({ _id: { $in: userObjectIds } })
+      .select("name")
+      .lean();
+
+    const userNameById = new Map<string, string>();
+    for (const u of users) {
+      userNameById.set(String((u as any)._id), (u as any).name);
+    }
+
+    const servicesWithNames = services.map((s: any) => ({
+      ...s,
+      name: s.user ? (userNameById.get(String(s.user)) ?? null) : null,
+    }));
+
+    res.status(200).json({
+      success: true,
+      services: servicesWithNames,
+      message: "Lista de atendimentos encontrada com sucesso",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao buscar atendimentos",
+    });
+  }
+};
 
 export const getServicesByUser = async (req: Request, res: Response) => {
   try {
