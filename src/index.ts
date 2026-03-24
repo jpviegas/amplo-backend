@@ -8,6 +8,7 @@ import citiesRoutes from "./routes/CitiesRoutes";
 import companiesRoutes from "./routes/CompanyRoutes";
 import departmentsRoutes from "./routes/DepartmentRoutes";
 import documentRoutes from "./routes/documentRoutes";
+import hoursRoutes from "./routes/hoursRoutes";
 import noticesRoutes from "./routes/NoticesRoutes";
 import positionsRoutes from "./routes/PositionsRoutes";
 import refeicaoRoutes from "./routes/RefeicaoRoutes";
@@ -45,6 +46,7 @@ app.use((req, res, next) => {
 app.use("/api/auth", userRoutes);
 app.use("/api/timesheet", timesheetRoutes);
 app.use("/api/notices", noticesRoutes);
+app.use("/api/hours", hoursRoutes);
 app.use("/api/refeicoes", refeicaoRoutes);
 app.use("/api/transportes", transporteRoutes);
 app.use("/api/trainings", trainingRoutes);
@@ -57,21 +59,21 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/positions", positionsRoutes);
 // ZapSign integration endpoints (mounted at root to match required paths)
 app.use("/", zapSignRoutes);
-// app.use(
-//   (
-//     err: any,
-//     _req: express.Request,
-//     _res: express.Response,
-//     next: express.NextFunction,
-//   ) => {
-//     console.error("ERR", {
-//       status: err?.status,
-//       message: err?.message,
-//       data: err?.response?.data,
-//     });
-//     next(err);
-//   },
-// );
+app.use(
+  (
+    err: any,
+    _req: express.Request,
+    _res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    console.error("ERR", {
+      status: err?.status,
+      message: err?.message,
+      data: err?.response?.data,
+    });
+    next(err);
+  },
+);
 
 app.get("/", (_req, res) => {
   res.send("API is running...");

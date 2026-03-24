@@ -4,7 +4,7 @@ export interface IHolerite extends Document {
   holerite: string;
 }
 
-const positionSchema = new mongoose.Schema<IHolerite>(
+const holeriteSchema = new mongoose.Schema<IHolerite>(
   {
     holerite: {
       type: String,
@@ -13,7 +13,7 @@ const positionSchema = new mongoose.Schema<IHolerite>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-export const Holerite = mongoose.model("Holerite", positionSchema);
+export const Holerite = mongoose.model("Holerite", holeriteSchema);

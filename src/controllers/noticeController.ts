@@ -55,3 +55,38 @@ export const createNotice = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const updateNotice = async (req: Request, res: Response) => {
+  try {
+    const { title, subTitle, notice } = req.body;
+
+    if (!title || !notice) {
+      return res.status(400).json({
+        success: false,
+        message: "Título e conteúdo da notícia são obrigatórios",
+      });
+    }
+
+    const newNotice = await Notice.findByIdAndUpdate(
+      req.params.id,
+      {
+        title,
+        subTitle,
+        notice,
+      },
+      { new: true },
+    );
+
+    res.status(201).json({
+      success: true,
+      data: newNotice,
+      message: "Notícia editada com sucesso!",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao editar notícia",
+      error: error.message,
+    });
+  }
+};
