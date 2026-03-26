@@ -79,7 +79,6 @@ export const getDepartment = async (req: Request, res: Response) => {
 
 export const registerDepartment = async (req: Request, res: Response) => {
   const values = req.body as Partial<IDepartment> & { department?: unknown };
-  console.log(values);
 
   try {
     const rawName =
@@ -106,7 +105,6 @@ export const registerDepartment = async (req: Request, res: Response) => {
         $options: "i",
       },
     }).lean();
-    console.log(existingDepartment);
 
     if (existingDepartment) {
       return res.status(409).json({

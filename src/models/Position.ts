@@ -8,7 +8,7 @@ const positionSchema = new mongoose.Schema<IPosition>(
   {
     positionName: {
       type: String,
-      required: [true, "O nome é obrigatório"],
+      required: [true, "O nome do cargo é obrigatório"],
     },
   },
   {

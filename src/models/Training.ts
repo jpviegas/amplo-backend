@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface ITraining extends Document {
   title: string;
@@ -22,7 +22,7 @@ const trainingSchema = new mongoose.Schema<ITraining>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Training = mongoose.model("Training", trainingSchema);

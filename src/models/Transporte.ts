@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface ITransporte extends Document {
   month: String;
@@ -42,7 +42,7 @@ const transporteSchema = new mongoose.Schema<ITransporte>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Transporte = mongoose.model("Transporte", transporteSchema);

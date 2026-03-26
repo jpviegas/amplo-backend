@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface INotice extends Document {
   title: string;
@@ -22,7 +22,7 @@ const noticeSchema = new mongoose.Schema<INotice>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Notice = mongoose.model("Notice", noticeSchema);

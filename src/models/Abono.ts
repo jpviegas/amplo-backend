@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface IAbono extends Document {
   reason: "Esqueci" | "Atestado" | "Justificada" | "Injustificada";
@@ -47,7 +47,7 @@ const abonoSchema = new mongoose.Schema<IAbono>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Abono = mongoose.model("Abono", abonoSchema);

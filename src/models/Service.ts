@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface IService extends Document {
   type: "RH" | "OP" | "OR";

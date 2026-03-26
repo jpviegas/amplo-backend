@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface IRefeicao extends Document {
   month: String;
@@ -43,7 +43,7 @@ const refeicaoSchema = new mongoose.Schema<IRefeicao>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Refeicao = mongoose.model("Refeicao", refeicaoSchema);

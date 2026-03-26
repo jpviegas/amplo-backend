@@ -79,72 +79,44 @@ export const getPosition = async (req: Request, res: Response) => {
 
 export const registerPosition = async (req: Request, res: Response) => {
   const values = req.body as Partial<IPosition> & { position?: unknown };
-  console.log(values);
 
-  try {
-    const rawName =
-      typeof values.positionName === "string"
-        ? values.positionName
-        : typeof values.position === "string"
-          ? values.position
-          : "";
-    const positionName = rawName.trim();
+  const rawName =
+    typeof (values as any)?.positionName === "string"
+      ? String((values as any).positionName)
+      : typeof (values as any)?.position === "string"
+        ? String((values as any).position)
+        : "";
+  const positionName = rawName.trim();
 
-    if (!positionName) {
-      return res.status(400).json({
-        success: false,
-        message: "Nome do cargo é obrigatório",
-      });
-    }
-
-    const escapeRegex = (input: string) =>
-      input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-    const existingPosition = await Position.findOne({
-      positionName: {
-        $regex: `^${escapeRegex(positionName)}$`,
-        $options: "i",
-      },
-    }).lean();
-    console.log(existingPosition);
-
-    if (existingPosition) {
-      return res.status(409).json({
-        success: false,
-        message: "Cargo já cadastrado com este nome",
-      });
-    }
-
-    const createNewPosition = await Position.create({
-      positionName,
-    });
-    res.status(201).json({
-      success: true,
-      data: createNewPosition,
-      message: `O cargo ${positionName} foi criado com sucesso.`,
-    });
-  } catch (error: any) {
-    if (error?.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "Cargo já cadastrado com este nome",
-      });
-    }
-
-    if (error?.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: "Dados inválidos para cadastro do cargo",
-        errors: Object.values(error.errors).map((err: any) => err.message),
-      });
-    }
-
-    res.status(500).json({
+  if (!positionName) {
+    return res.status(400).json({
       success: false,
-      message: "Erro ao cadastrar o cargo",
-      error: error.message,
+      message: "Nome do cargo é obrigatório",
     });
   }
+
+  const escapeRegex = (input: string) =>
+    input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const existingPosition = await Position.findOne({
+    positionName: {
+      $regex: `^${escapeRegex(positionName)}$`,
+      $options: "i",
+    },
+  }).lean();
+
+  if (existingPosition) {
+    return res.status(409).json({
+      success: false,
+      message: "Cargo já cadastrado com este nome",
+    });
+  }
+
+  await Position.create({ ...values, positionName });
+  res.status(201).json({
+    success: true,
+    message: `O cargo ${positionName} foi criado com sucesso.`,
+  });
 };
 
 export const updatePosition = async (req: Request, res: Response) => {

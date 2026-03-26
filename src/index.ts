@@ -25,8 +25,6 @@ connectDB();
 
 const app = express();
 
-app.set("etag", false);
-
 app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {

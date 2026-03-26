@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface ICompany extends Document {
   companyName: string;
@@ -102,7 +102,7 @@ const companySchema = new mongoose.Schema<ICompany>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Company = mongoose.model("Company", companySchema);
