@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Position } from "../models/Position";
+import { IPosition, Position } from "../models/Position";
 
 export const getAllPositions = async (req: Request, res: Response) => {
   const { search } = req.query;
@@ -78,19 +78,25 @@ export const getPosition = async (req: Request, res: Response) => {
 };
 
 export const registerPosition = async (req: Request, res: Response) => {
-  const values = req.body;
+  const values = req.body as Partial<IPosition> & { position?: unknown };
   console.log(values);
 
   try {
-    const rawName = values?.position;
-    if (!rawName || typeof rawName !== "string") {
+    const rawName =
+      typeof values.positionName === "string"
+        ? values.positionName
+        : typeof values.position === "string"
+          ? values.position
+          : "";
+    const positionName = rawName.trim();
+
+    if (!positionName) {
       return res.status(400).json({
         success: false,
-        message: "O nome é obrigatório",
+        message: "Nome do cargo é obrigatório",
       });
     }
 
-    const positionName = rawName.trim();
     const escapeRegex = (input: string) =>
       input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -109,14 +115,23 @@ export const registerPosition = async (req: Request, res: Response) => {
       });
     }
 
-    const createNewPosition = new Position({ ...values, positionName });
-    await createNewPosition.save();
+    const createNewPosition = await Position.create({
+      positionName,
+    });
     res.status(201).json({
       success: true,
+      data: createNewPosition,
       message: `O cargo ${positionName} foi criado com sucesso.`,
     });
   } catch (error: any) {
-    if (error.name === "ValidationError") {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Cargo já cadastrado com este nome",
+      });
+    }
+
+    if (error?.name === "ValidationError") {
       return res.status(400).json({
         success: false,
         message: "Dados inválidos para cadastro do cargo",
@@ -146,19 +161,38 @@ export const updatePosition = async (req: Request, res: Response) => {
       });
     }
 
-    const rawName = values?.positionName;
-    if (!rawName || typeof rawName !== "string") {
+    // const rawName = values?.positionName;
+    // if (!rawName || typeof rawName !== "string") {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "O nome é obrigatório",
+    //   });
+    // }
+
+    // const positionName = rawName.trim();
+    // const escapeRegex = (input: string) =>
+    //   input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const rawName =
+      typeof (values as any)?.positionName === "string"
+        ? (values as any).positionName
+        : typeof (values as any)?.position === "string"
+          ? (values as any).position
+          : "";
+    const positionName = String(rawName).trim();
+
+    if (!positionName) {
       return res.status(400).json({
         success: false,
-        message: "O nome é obrigatório",
+        message: "Nome do cargo é obrigatório",
       });
     }
 
-    const positionName = rawName.trim();
     const escapeRegex = (input: string) =>
       input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const existingPositionName = await Position.findOne({
+      _id: { $ne: id },
       positionName: {
         $regex: `^${escapeRegex(positionName)}$`,
         $options: "i",
@@ -172,12 +206,10 @@ export const updatePosition = async (req: Request, res: Response) => {
       });
     }
 
-    await Position.findByIdAndUpdate(id, values);
+    await Position.findByIdAndUpdate(id, { ...values, positionName });
     res.status(200).json({
       success: true,
-      message: `O cargo ${
-        values.positionName || existingPosition.positionName
-      } foi atualizado com sucesso.`,
+      message: `O cargo ${positionName} foi atualizado com sucesso.`,
     });
   } catch (error: any) {
     if (error.name === "ValidationError") {

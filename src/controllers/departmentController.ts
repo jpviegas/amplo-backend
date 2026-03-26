@@ -12,7 +12,7 @@ export const getAllDepartments = async (req: Request, res: Response) => {
     const filter: Record<string, any> = {};
 
     if (search) {
-      filter.department = { $regex: search, $options: "i" };
+      filter.departmentName = { $regex: search, $options: "i" };
     }
 
     const [departments, total] = await Promise.all([
@@ -78,19 +78,25 @@ export const getDepartment = async (req: Request, res: Response) => {
 };
 
 export const registerDepartment = async (req: Request, res: Response) => {
-  const values = req.body;
+  const values = req.body as Partial<IDepartment> & { department?: unknown };
   console.log(values);
 
   try {
-    const rawName = values?.department;
-    if (!rawName || typeof rawName !== "string") {
+    const rawName =
+      typeof (values as any)?.departmentName === "string"
+        ? String((values as any).departmentName)
+        : typeof (values as any)?.department === "string"
+          ? String((values as any).department)
+          : "";
+    const departmentName = rawName.trim();
+
+    if (!departmentName) {
       return res.status(400).json({
         success: false,
         message: "O nome é obrigatório",
       });
     }
 
-    const departmentName = rawName.trim();
     const escapeRegex = (input: string) =>
       input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -109,13 +115,19 @@ export const registerDepartment = async (req: Request, res: Response) => {
       });
     }
 
-    const createNewDepartment = new Department({ ...values, departmentName });
-    await createNewDepartment.save();
+    await Department.create({ ...values, departmentName });
     res.status(201).json({
       success: true,
       message: `O departamento ${departmentName} foi criado com sucesso.`,
     });
   } catch (error: any) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Departamento já cadastrado com este nome",
+      });
+    }
+
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
@@ -146,19 +158,26 @@ export const updateDepartment = async (req: Request, res: Response) => {
       });
     }
 
-    const rawName = values?.departmentName;
-    if (!rawName || typeof rawName !== "string") {
+    const rawName =
+      typeof (req.body as any)?.departmentName === "string"
+        ? String((req.body as any).departmentName)
+        : typeof (req.body as any)?.department === "string"
+          ? String((req.body as any).department)
+          : "";
+    const departmentName = rawName.trim();
+
+    if (!departmentName) {
       return res.status(400).json({
         success: false,
         message: "O nome é obrigatório",
       });
     }
 
-    const departmentName = rawName.trim();
     const escapeRegex = (input: string) =>
       input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const existingDepartmentName = await Department.findOne({
+      _id: { $ne: id },
       departmentName: {
         $regex: `^${escapeRegex(departmentName)}$`,
         $options: "i",
@@ -172,14 +191,19 @@ export const updateDepartment = async (req: Request, res: Response) => {
       });
     }
 
-    await Department.findByIdAndUpdate(id, values);
+    await Department.findByIdAndUpdate(id, { ...values, departmentName });
     res.status(200).json({
       success: true,
-      message: `O departamento ${
-        values.departmentName || existingDepartment.departmentName
-      } foi atualizado com sucesso.`,
+      message: `O departamento ${departmentName} foi atualizado com sucesso.`,
     });
   } catch (error: any) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Departamento já cadastrado com este nome",
+      });
+    }
+
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,

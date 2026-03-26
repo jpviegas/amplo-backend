@@ -68,6 +68,19 @@ export const createHour = async (req: Request, res: Response) => {
       });
     }
 
+    const existingHour = await Hour.findOne({
+      initialHour,
+      finalHour,
+    }).lean();
+    console.log(existingHour);
+
+    if (existingHour) {
+      return res.status(409).json({
+        success: false,
+        message: "Horário já cadastrado com este período",
+      });
+    }
+
     const newHour = await Hour.create({
       initialHour,
       finalHour,
@@ -76,7 +89,7 @@ export const createHour = async (req: Request, res: Response) => {
     res.status(201).json({
       success: true,
       data: newHour,
-      message: "horário criada com sucesso!",
+      message: "Horário criada com sucesso!",
     });
   } catch (error: any) {
     res.status(500).json({
