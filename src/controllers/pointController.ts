@@ -16,45 +16,71 @@ export const getAllTimesheets = async (req: Request, res: Response) => {
     const usersCollection = User.collection.name;
 
     const [{ data, totalCount }] = await Point.aggregate([
-      { $sort: { timestamp: -1 } },
+      {
+        $addFields: {
+          userIdObj: {
+            $convert: {
+              input: "$userId",
+              to: "objectId",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: usersCollection,
+          localField: "userIdObj",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          name: "$user.name",
+          dateKey: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$timestamp",
+              timezone: "America/Sao_Paulo",
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { userId: "$userIdObj", date: "$dateKey", name: "$name" },
+          userId: { $first: "$userIdObj" },
+          name: { $first: "$name" },
+          date: { $first: "$dateKey" },
+          timestamps: {
+            $push: {
+              $dateToString: {
+                format: "%Y-%m-%d %H:%M:%S",
+                date: "$timestamp",
+                timezone: "America/Sao_Paulo",
+              },
+            },
+          },
+        },
+      },
+      { $sort: { date: -1, name: 1 } },
       {
         $facet: {
-          data: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $addFields: {
-                userIdObj: {
-                  $convert: {
-                    input: "$userId",
-                    to: "objectId",
-                    onError: null,
-                    onNull: null,
-                  },
-                },
-              },
-            },
-            {
-              $lookup: {
-                from: usersCollection,
-                localField: "userIdObj",
-                foreignField: "_id",
-                as: "user",
-              },
-            },
-            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-            { $addFields: { name: "$user.name" } },
-            { $project: { user: 0, userIdObj: 0 } },
-          ],
+          data: [{ $skip: skip }, { $limit: limit }],
           totalCount: [{ $count: "total" }],
         },
       },
     ]);
 
     const total = totalCount?.[0]?.total || 0;
-    const points = (data || []).map((p: any) => ({
-      ...p,
-      name: typeof p?.name === "string" ? p.name : null,
+    const points = (data || []).map((g: any) => ({
+      userId: g.userId,
+      name: typeof g?.name === "string" ? g.name : null,
+      date: g.date,
+      timestamps: Array.isArray(g.timestamps) ? g.timestamps : [],
     }));
 
     const totalPages = Math.ceil(total / limit);

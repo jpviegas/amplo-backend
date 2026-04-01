@@ -1,5 +1,5 @@
-import { Request, Response } from "express";
 import { createHash, randomBytes } from "crypto";
+import { Request, Response } from "express";
 
 import jwt from "jsonwebtoken";
 
@@ -35,7 +35,9 @@ const generateTemporaryPassword = () => {
 
 const getPasswordTokenExpiresAt = () => {
   const ttlHours = Number(process.env.PASSWORD_TOKEN_TTL_HOURS || "24");
-  const ttlMs = Number.isNaN(ttlHours) ? 24 * 60 * 60 * 1000 : ttlHours * 60 * 60 * 1000;
+  const ttlMs = Number.isNaN(ttlHours)
+    ? 24 * 60 * 60 * 1000
+    : ttlHours * 60 * 60 * 1000;
   return new Date(Date.now() + ttlMs);
 };
 
@@ -78,10 +80,7 @@ const clearPasswordTokenData = (user: IUser, type: PasswordTokenType) => {
   user.passwordResetTokenUsedAt = new Date();
 };
 
-const findUserByValidToken = async (
-  token: string,
-  type: PasswordTokenType,
-) => {
+const findUserByValidToken = async (token: string, type: PasswordTokenType) => {
   const tokenHash = createHash("sha256").update(token).digest("hex");
   const now = new Date();
 
@@ -101,7 +100,7 @@ const findUserByValidToken = async (
 };
 
 export const getAllUsers = async (req: Request, res: Response) => {
-  const { search } = req.query;
+  const { search, status } = req.query;
 
   const page = parseInt(req.query.page as string) || 1;
   const limit = 10;
@@ -112,6 +111,17 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
     if (search) {
       filter.name = { $regex: search, $options: "i" };
+    }
+
+    if (typeof status === "string" && status.trim()) {
+      const normalizedStatus = status.trim().toLowerCase();
+      if (normalizedStatus !== "active" && normalizedStatus !== "inactive") {
+        return res.status(400).json({
+          success: false,
+          message: "Status inválido. Use 'active' ou 'inactive'.",
+        });
+      }
+      filter.status = normalizedStatus;
     }
 
     const [users, total] = await Promise.all([
@@ -242,6 +252,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const registerUser = async (req: Request, res: Response) => {
   const values = req.body as Partial<IUser>;
+  console.log(values);
 
   try {
     const normalizedEmail = values.email?.toLowerCase().trim();
@@ -377,9 +388,9 @@ export const authUser = async (req: Request, res: Response) => {
         .json({ success: false, message: "Email e senha são obrigatórios" });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
-      "+password",
-    );
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+    }).select("+password");
 
     if (!user) {
       return res.status(401).json({ message: "Email ou senha incorreta" });
@@ -607,7 +618,9 @@ export const sendTestEmail = async (req: Request, res: Response) => {
   const to = String(req.body?.to || "")
     .trim()
     .toLowerCase();
-  const actionUrl = String(req.body?.actionUrl || "http://localhost:3000/cadastro-senha/token").trim();
+  const actionUrl = String(
+    req.body?.actionUrl || "http://localhost:3000/cadastro-senha/token",
+  ).trim();
   const subject = String(req.body?.subject || "Teste de envio de e-mail");
 
   if (!to) {
