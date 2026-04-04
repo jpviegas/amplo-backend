@@ -151,3 +151,30 @@ export const updateCompany = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deleteCompany = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const existingCompany = await Company.findById(id).lean();
+
+    if (!existingCompany) {
+      return res.status(404).json({
+        success: false,
+        message: "Empresa não encontrada",
+      });
+    }
+
+    await Company.findByIdAndDelete(id);
+    res.status(200).json({
+      success: true,
+      message: `A empresa ${existingCompany.companyName} foi excluído com sucesso.`,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao excluir a empresa.",
+      error: error.message,
+    });
+  }
+};

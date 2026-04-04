@@ -89,3 +89,30 @@ export const updateCity = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deleteCity = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const existingCity = await Cities.findById(id).lean();
+
+    if (!existingCity) {
+      return res.status(404).json({
+        success: false,
+        message: "Cidade não encontrada",
+      });
+    }
+
+    await Cities.findByIdAndDelete(id);
+    res.status(200).json({
+      success: true,
+      message: `A cidade ${existingCity.city} foi excluído com sucesso.`,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao excluir a cidade.",
+      error: error.message,
+    });
+  }
+};
