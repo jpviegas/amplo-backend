@@ -106,6 +106,123 @@ export const getServiceById = async (req: Request, res: Response) => {
   }
 };
 
+export const updateService = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const values = req.body as Partial<{
+      type: unknown;
+      subject: unknown;
+      text: unknown;
+      status: unknown;
+      user: unknown;
+      userId: unknown;
+    }> & { id?: unknown };
+
+    const existingService = await Service.findById(id).lean();
+    if (!existingService) {
+      return res.status(404).json({
+        success: false,
+        message: "Atendimento não encontrado",
+      });
+    }
+
+    const update: Record<string, any> = {};
+
+    if (typeof values.type === "string" && values.type.trim()) {
+      const normalizedType = values.type.trim();
+      if (!["RH", "OP", "OR"].includes(normalizedType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Tipo inválido. Use 'RH', 'OP' ou 'OR'.",
+        });
+      }
+      update.type = normalizedType;
+    }
+
+    if (typeof values.subject === "string") {
+      const subject = values.subject.trim();
+      if (!subject) {
+        return res.status(400).json({
+          success: false,
+          message: "Assunto é obrigatório",
+        });
+      }
+      update.subject = subject;
+    }
+
+    if (typeof values.text === "string") {
+      const text = values.text.trim();
+      if (!text) {
+        return res.status(400).json({
+          success: false,
+          message: "Texto é obrigatório",
+        });
+      }
+      update.text = text;
+    }
+
+    if (typeof values.status === "string" && values.status.trim()) {
+      const normalizedStatus = values.status.trim();
+      if (!["Pendente", "Aprovado", "Rejeitado"].includes(normalizedStatus)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Status inválido. Use 'Pendente', 'Aprovado' ou 'Rejeitado'.",
+        });
+      }
+      update.status = normalizedStatus;
+    }
+
+    const rawUserId =
+      typeof values.userId === "string"
+        ? values.userId
+        : typeof values.user === "string"
+          ? values.user
+          : typeof (values as any).id === "string"
+            ? String((values as any).id)
+            : "";
+    if (rawUserId && mongoose.Types.ObjectId.isValid(rawUserId)) {
+      update.user = new mongoose.Types.ObjectId(rawUserId);
+    } else if (rawUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId inválido",
+      });
+    }
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Nenhum campo válido para atualizar",
+      });
+    }
+
+    const updated = await Service.findByIdAndUpdate(id, update, {
+      new: true,
+    }).lean();
+
+    return res.status(200).json({
+      success: true,
+      data: updated,
+      message: "Atendimento atualizado com sucesso!",
+    });
+  } catch (error: any) {
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Dados inválidos para atualização do atendimento",
+        errors: Object.values(error.errors).map((err: any) => err.message),
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao atualizar atendimento",
+      error: error.message,
+    });
+  }
+};
+
 export const createService = async (req: Request, res: Response) => {
   try {
     const { type, subject, text, id } = req.body;
