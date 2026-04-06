@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 
 import { IUser, User } from "../models/User";
 import { sendTemplateEmail } from "../services/resendService";
+import console from "console";
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || "secret", {
@@ -344,6 +345,7 @@ export const registerUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
   const values: IUser = req.body;
+  console.log(values);
 
   try {
     const existingUser = await User.findById(id).lean();

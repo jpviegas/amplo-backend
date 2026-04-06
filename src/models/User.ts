@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import mongoose, { Document } from "mongoose";
-import { ICities } from "./Cities";
 import { ICompany } from "./Company";
 import { IDepartment } from "./Department";
 
@@ -31,7 +30,8 @@ export interface IUser extends Document {
   cep?: string;
   address?: string;
   neighborhood?: string;
-  city?: mongoose.Types.ObjectId | ICities;
+  city?: string;
+  // city?: mongoose.Types.ObjectId | ICities;
   state?: string;
   phone?: string;
   extension?: string;
@@ -80,7 +80,7 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, "A senha é obrigatória."],
+      // required: [true, "A senha é obrigatória."],
       minlength: [8, "A senha deve ter no mínimo 8 caracteres"],
       validate: {
         validator: function (v: string) {
@@ -201,9 +201,12 @@ const userSchema = new mongoose.Schema<IUser>(
       type: String,
     },
     city: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Cities",
+      type: String,
     },
+    // city: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Cities",
+    // },
     state: {
       type: String,
     },

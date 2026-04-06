@@ -89,7 +89,7 @@ export const createHour = async (req: Request, res: Response) => {
     res.status(201).json({
       success: true,
       data: newHour,
-      message: "Horário criada com sucesso!",
+      message: "Horário criado com sucesso!",
     });
   } catch (error: any) {
     res.status(500).json({
