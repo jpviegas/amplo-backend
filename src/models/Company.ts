@@ -9,12 +9,12 @@ export interface ICompany extends Document {
   district: string;
   city: string;
   uf: string;
-  page: string;
-  registration: string;
-  responsibleCpf: string;
-  responsibleName: string;
-  responsibleRole: string;
-  companyEmail: string;
+  // page: string;
+  // registration: string;
+  // responsibleCpf: string;
+  // responsibleName: string;
+  // responsibleRole: string;
+  // companyEmail: string;
 }
 
 const companySchema = new mongoose.Schema<ICompany>(
@@ -42,9 +42,9 @@ const companySchema = new mongoose.Schema<ICompany>(
       required: [true, "O número do CEP é obrigatório"],
       validate: {
         validator: function (v: string) {
-          return v.length === 7;
+          return v.length === 8;
         },
-        message: "O CEP deve ter 7 caracteres",
+        message: "O CEP deve ter 8 caracteres",
       },
     },
     address: {
@@ -63,42 +63,42 @@ const companySchema = new mongoose.Schema<ICompany>(
       type: String,
       required: [true, "A UF é obrigatória"],
     },
-    page: {
-      type: String,
-      required: [true, "O número da folha é obrigatório"],
-    },
-    registration: {
-      type: String,
-      required: [true, "A inscrição estadual é obrigatória"],
-    },
-    responsibleCpf: {
-      type: String,
-      required: [true, "O número de CPF do responsável é obrigatório"],
-      validate: {
-        validator: function (v: string) {
-          return v.length === 11;
-        },
-        message: "O CPF deve ter 11 dígitos",
-      },
-    },
-    responsibleName: {
-      type: String,
-      required: [true, "O nome do responsável é obrigatório"],
-    },
-    responsibleRole: {
-      type: String,
-      required: [true, "O cargo do responsável é obrigatório"],
-    },
-    companyEmail: {
-      type: String,
-      required: [true, "O email da empresa é obrigatório"],
-      validate: {
-        validator: function (v: string) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-        },
-        message: "Formato de email inválido",
-      },
-    },
+    // page: {
+    //   type: String,
+    //   required: [true, "O número da folha é obrigatório"],
+    // },
+    // registration: {
+    //   type: String,
+    //   required: [true, "A inscrição estadual é obrigatória"],
+    // },
+    // responsibleCpf: {
+    //   type: String,
+    //   required: [true, "O número de CPF do responsável é obrigatório"],
+    //   validate: {
+    //     validator: function (v: string) {
+    //       return v.length === 11;
+    //     },
+    //     message: "O CPF deve ter 11 dígitos",
+    //   },
+    // },
+    // responsibleName: {
+    //   type: String,
+    //   required: [true, "O nome do responsável é obrigatório"],
+    // },
+    // responsibleRole: {
+    //   type: String,
+    //   required: [true, "O cargo do responsável é obrigatório"],
+    // },
+    // companyEmail: {
+    //   type: String,
+    //   required: [true, "O email da empresa é obrigatório"],
+    //   validate: {
+    //     validator: function (v: string) {
+    //       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    //     },
+    //     message: "Formato de email inválido",
+    //   },
+    // },
   },
   {
     timestamps: true,

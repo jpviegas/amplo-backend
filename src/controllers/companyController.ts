@@ -79,6 +79,8 @@ export const getCompanyById = async (req: Request, res: Response) => {
 
 export const registerCompany = async (req: Request, res: Response) => {
   const values = req.body;
+  console.log(values);
+
   try {
     const existingCompany = await Company.findOne({
       companyName: values.companyName,
