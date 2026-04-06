@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { User } from "../models/User";
-import { ZapSignDocumentModel } from "../models/ZapSignDocument";
+import { ZapSignDocumentModel, ZAPSIGN_DOCUMENT_TYPES } from "../models/ZapSignDocument";
 import {
   findByToken,
   listDocumentsForSignerEmail,
@@ -13,6 +13,7 @@ import { createDocument } from "../services/zapSignService";
 
 const createDocSchema = z.object({
   userId: z.string().min(1, "userId é obrigatório"),
+  type: z.enum(ZAPSIGN_DOCUMENT_TYPES),
   signers: z
     .array(z.string().email("Email inválido"))
     .min(1, "Ao menos 1 email"),
@@ -23,6 +24,10 @@ const listDocsSchema = z.object({
     const s = typeof v === "string" ? v.trim() : v;
     return s === "" ? undefined : s;
   }, z.string().email("Email inválido").optional()),
+  type: z.preprocess((v) => {
+    const s = typeof v === "string" ? v.trim() : v;
+    return s === "" ? undefined : s;
+  }, z.enum(ZAPSIGN_DOCUMENT_TYPES).optional()),
   only_pending: z.string().optional(),
   only_to_sign: z.string().optional(),
 });
@@ -36,6 +41,7 @@ export async function postDocuments(req: Request, res: Response) {
     });
     const parsed = createDocSchema.safeParse({
       userId: req.body.userId,
+      type: req.body.type,
       signers: Array.isArray(req.body.signers)
         ? req.body.signers
         : typeof req.body.signers === "string"
@@ -54,7 +60,7 @@ export async function postDocuments(req: Request, res: Response) {
       });
     }
 
-    const { userId, signers } = parsed.data;
+    const { userId, signers, type } = parsed.data;
     const file = req.file;
 
     if (!file) {
@@ -135,6 +141,7 @@ export async function postDocuments(req: Request, res: Response) {
     const saved = await saveZapSignDocument({
       userId: user._id,
       userEmail,
+      type,
       document_name: zapsignResp.name,
       token: zapsignResp.token,
       status: zapsignResp.status,
@@ -158,6 +165,7 @@ export async function postDocuments(req: Request, res: Response) {
       data: {
         id: saved._id,
         user_id: saved.userId,
+        type: saved.type,
         document_name: saved.document_name,
         token: saved.token,
         status: saved.status,
@@ -179,6 +187,7 @@ export async function postDocuments(req: Request, res: Response) {
 export async function listDocuments(req: Request, res: Response) {
   const parsed = listDocsSchema.safeParse({
     email: req.query.email,
+    type: req.query.type,
     only_pending: req.query.only_pending,
     only_to_sign: req.query.only_to_sign,
   });
@@ -191,14 +200,16 @@ export async function listDocuments(req: Request, res: Response) {
     });
   }
 
-  const { email, only_pending, only_to_sign } = parsed.data;
+  const { email, only_pending, only_to_sign, type } = parsed.data;
   const onlyPending =
     typeof only_pending === "string" ? only_pending === "true" : !!email;
   const onlyToSign =
     typeof only_to_sign === "string" ? only_to_sign === "true" : !!email;
 
   if (!email) {
-    const filter = onlyPending ? { status: "pending" } : {};
+    const filter: Record<string, any> = {};
+    if (onlyPending) filter.status = "pending";
+    if (type) filter.type = type;
     const documents = await ZapSignDocumentModel.find(filter)
       .sort({ created_at: -1 })
       .lean();
@@ -213,6 +224,7 @@ export async function listDocuments(req: Request, res: Response) {
   const docs = await listDocumentsForSignerEmail(email, {
     onlyPending,
     onlyToSign,
+    type,
   });
   const normalizedEmail = email.trim().toLowerCase();
   const signers = docs.flatMap((d) =>

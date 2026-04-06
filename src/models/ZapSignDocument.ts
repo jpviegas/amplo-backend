@@ -1,6 +1,20 @@
 import mongoose, { Document, Schema } from "mongoose";
 import { IUser } from "./User";
 
+export const ZAPSIGN_DOCUMENT_TYPES = [
+  "codigo_conduta",
+  "contrato",
+  "diversos",
+  "ficha_epi",
+  "ficha_egistro",
+  "politica_interna",
+  "saude_ocupacional",
+  "termos",
+  "demais_documentos",
+] as const;
+
+export type ZapSignDocumentType = (typeof ZAPSIGN_DOCUMENT_TYPES)[number];
+
 export interface IZapSigner {
   token: string;
   status: "new" | "link-opened" | "signed";
@@ -14,6 +28,7 @@ export interface IZapSigner {
 export interface IZapSignDocument extends Document {
   userId: mongoose.Types.ObjectId | IUser;
   userEmail: string;
+  type: ZapSignDocumentType;
   document_name: string;
   token: string;
   status: "pending" | "signed";
@@ -48,6 +63,7 @@ const ZapSignDocumentSchema = new Schema<IZapSignDocument>(
       required: true,
     },
     userEmail: { type: String, required: true, lowercase: true, trim: true },
+    type: { type: String, enum: ZAPSIGN_DOCUMENT_TYPES, required: true },
     document_name: { type: String, required: true },
     token: { type: String, required: true, index: true, unique: true },
     status: {

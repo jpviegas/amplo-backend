@@ -1,9 +1,15 @@
-import { ZapSignDocumentModel, IZapSignDocument, IZapSigner } from "../models/ZapSignDocument";
+import {
+  IZapSignDocument,
+  IZapSigner,
+  ZapSignDocumentModel,
+  ZapSignDocumentType,
+} from "../models/ZapSignDocument";
 import mongoose from "mongoose";
 
 export async function saveZapSignDocument(doc: {
   userId: mongoose.Types.ObjectId;
   userEmail: string;
+  type: ZapSignDocumentType;
   document_name: string;
   token: string;
   status: "pending" | "signed";
@@ -24,18 +30,23 @@ function escapeRegex(input: string): string {
 
 export async function listDocumentsForSignerEmail(
   email: string,
-  options?: { onlyPending?: boolean; onlyToSign?: boolean },
+  options?: { onlyPending?: boolean; onlyToSign?: boolean; type?: ZapSignDocumentType },
 ): Promise<IZapSignDocument[]> {
   const normalizedEmail = (email || "").trim().toLowerCase();
   const emailRegex = new RegExp(`^${escapeRegex(normalizedEmail)}$`, "i");
 
   const onlyPending = options?.onlyPending ?? true;
   const onlyToSign = options?.onlyToSign ?? true;
+  const type = options?.type;
 
   const filter: Record<string, any> = {};
 
   if (onlyPending) {
     filter.status = "pending";
+  }
+
+  if (type) {
+    filter.type = type;
   }
 
   if (onlyToSign) {
