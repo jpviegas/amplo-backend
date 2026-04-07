@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { User } from "../models/User";
-import { ZapSignDocumentModel, ZAPSIGN_DOCUMENT_TYPES } from "../models/ZapSignDocument";
+import {
+  ZAPSIGN_DOCUMENT_TYPES,
+  ZapSignDocumentModel,
+} from "../models/ZapSignDocument";
 import {
   findByToken,
-  listDocumentsForSignerEmail,
   saveZapSignDocument,
   updateSignersByToken,
   updateStatusByToken,
@@ -206,35 +208,80 @@ export async function listDocuments(req: Request, res: Response) {
   const onlyToSign =
     typeof only_to_sign === "string" ? only_to_sign === "true" : !!email;
 
-  if (!email) {
-    const filter: Record<string, any> = {};
-    if (onlyPending) filter.status = "pending";
-    if (type) filter.type = type;
-    const documents = await ZapSignDocumentModel.find(filter)
-      .sort({ created_at: -1 })
-      .lean();
-    return res.status(200).json({
-      success: true,
-      signers: (documents || [])
-        .flatMap((d: any) => d.signers || [])
-        .filter((s: any) => (onlyToSign ? s?.status !== "signed" : true)),
-    });
+  const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+  const rawLimit = parseInt(req.query.limit as string) || 10;
+  const limit = Math.min(Math.max(rawLimit, 1), 100);
+  const skip = (page - 1) * limit;
+
+  const escapeRegex = (input: string) =>
+    input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const normalizedEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
+
+  const match: Record<string, any> = {};
+  if (onlyPending) match.status = "pending";
+  if (type) match.type = type;
+
+  const signerMatch: Record<string, any> = {};
+  if (onlyToSign) signerMatch["signers.status"] = { $ne: "signed" };
+  if (normalizedEmail) {
+    signerMatch["signers.email"] = {
+      $regex: `^${escapeRegex(normalizedEmail)}$`,
+      $options: "i",
+    };
   }
 
-  const docs = await listDocumentsForSignerEmail(email, {
-    onlyPending,
-    onlyToSign,
-    type,
-  });
-  const normalizedEmail = email.trim().toLowerCase();
-  const signers = docs.flatMap((d) =>
-    (d.signers || []).filter(
-      (s) => (s.email || "").toLowerCase() === normalizedEmail,
-    ),
-  );
+  const [{ data, totalCount }] = await ZapSignDocumentModel.aggregate([
+    { $match: match },
+    { $sort: { created_at: -1 } },
+    { $unwind: { path: "$signers", preserveNullAndEmptyArrays: false } },
+    ...(Object.keys(signerMatch).length ? [{ $match: signerMatch }] : []),
+    {
+      $project: {
+        token: "$signers.token",
+        status: "$signers.status",
+        name: "$signers.name",
+        email: "$signers.email",
+        phone_country: "$signers.phone_country",
+        phone_number: "$signers.phone_number",
+        signed_at: "$signers.signed_at",
+        type: "$type",
+        document_token: "$token",
+        document_name: "$document_name",
+        document_status: "$status",
+        created_at: "$created_at",
+        zapsign_created_at: "$zapsign_created_at",
+      },
+    },
+    { $sort: { created_at: -1 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "total" }],
+      },
+    },
+  ]);
+
+  const total = totalCount?.[0]?.total || 0;
+  const signers = Array.isArray(data) ? data : [];
+
+  const totalPages = Math.ceil(total / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
 
   return res.status(200).json({
     success: true,
+    pagination: {
+      total,
+      page,
+      totalPages,
+      limit,
+      hasNextPage,
+      hasPrevPage,
+      nextPage: hasNextPage ? page + 1 : null,
+      prevPage: hasPrevPage ? page - 1 : null,
+    },
+    count: signers.length,
     signers,
   });
 }
