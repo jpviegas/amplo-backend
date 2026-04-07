@@ -89,7 +89,7 @@ export const registerDepartment = async (req: Request, res: Response) => {
           : "";
     const departmentName = rawName.trim();
 
-    if (!departmentName) {
+    if (!values || !departmentName) {
       return res.status(400).json({
         success: false,
         message: "O nome é obrigatório",
