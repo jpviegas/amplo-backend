@@ -17,6 +17,7 @@ export const getAllDepartments = async (req: Request, res: Response) => {
 
     const [departments, total] = await Promise.all([
       Department.find(filter)
+        .collation({ locale: "pt", strength: 2 })
         .sort({ departmentName: 1 })
         .skip(skip)
         .limit(limit)

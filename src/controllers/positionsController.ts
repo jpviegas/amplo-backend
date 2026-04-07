@@ -17,6 +17,7 @@ export const getAllPositions = async (req: Request, res: Response) => {
 
     const [positions, total] = await Promise.all([
       Position.find(filter)
+        .collation({ locale: "pt", strength: 2 })
         .sort({ positionName: 1 })
         .skip(skip)
         .limit(limit)

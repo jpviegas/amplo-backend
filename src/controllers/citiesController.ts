@@ -14,7 +14,12 @@ export const getAllCities = async (req: Request, res: Response) => {
     }
 
     const [cities, total] = await Promise.all([
-      Cities.find(filter).sort({ city: 1 }).skip(skip).limit(limit).lean(),
+      Cities.find(filter)
+        .collation({ locale: "pt", strength: 2 })
+        .sort({ city: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
       Cities.countDocuments(filter),
     ]);
 

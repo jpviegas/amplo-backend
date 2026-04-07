@@ -127,6 +127,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
     const [users, total] = await Promise.all([
       User.find(filter)
+        .collation({ locale: "pt", strength: 2 })
         .sort({ name: 1 })
         .skip(skip)
         .limit(limit)
