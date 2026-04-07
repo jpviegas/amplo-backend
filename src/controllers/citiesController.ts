@@ -3,13 +3,19 @@ import { Cities } from "../models/Cities";
 
 export const getAllCities = async (req: Request, res: Response) => {
   try {
+    const { search } = req.query;
     const page = parseInt(req.query.page as string) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
 
+    const filter: Record<string, any> = {};
+    if (search) {
+      filter.city = { $regex: search, $options: "i" };
+    }
+
     const [cities, total] = await Promise.all([
-      Cities.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      Cities.countDocuments(),
+      Cities.find(filter).sort({ city: 1 }).skip(skip).limit(limit).lean(),
+      Cities.countDocuments(filter),
     ]);
 
     const totalPages = Math.ceil(total / limit);

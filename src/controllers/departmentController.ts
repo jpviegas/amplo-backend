@@ -17,7 +17,7 @@ export const getAllDepartments = async (req: Request, res: Response) => {
 
     const [departments, total] = await Promise.all([
       Department.find(filter)
-        .sort({ createdAt: -1 })
+        .sort({ departmentName: 1 })
         .skip(skip)
         .limit(limit)
         .lean(),

@@ -3,9 +3,9 @@ import { Request, Response } from "express";
 
 import jwt from "jsonwebtoken";
 
+import console from "console";
 import { IUser, User } from "../models/User";
 import { sendTemplateEmail } from "../services/resendService";
-import console from "console";
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || "secret", {
@@ -127,7 +127,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
     const [users, total] = await Promise.all([
       User.find(filter)
-        .sort({ createdAt: -1 })
+        .sort({ name: 1 })
         .skip(skip)
         .limit(limit)
         .populate("companyId", "companyName")

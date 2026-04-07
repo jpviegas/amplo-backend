@@ -17,7 +17,7 @@ export const getAllCompanies = async (req: Request, res: Response) => {
 
     const [companies, total] = await Promise.all([
       Company.find(filter)
-        .sort({ createdAt: -1 })
+        .sort({ companyName: 1 })
         .skip(skip)
         .limit(limit)
         .lean(),
