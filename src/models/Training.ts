@@ -10,7 +10,10 @@ const trainingSchema = new mongoose.Schema<ITraining>(
   {
     title: {
       type: String,
-      required: [true, "O nome é obrigatório"],
+      unique: true,
+      minlength: 3,
+      maxlength: 20,
+      required: [true, "O título é obrigatório"],
     },
     subTitle: {
       type: String,

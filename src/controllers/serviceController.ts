@@ -3,13 +3,39 @@ import mongoose from "mongoose";
 import { Service } from "../models/Service";
 import { User } from "../models/User";
 
-export const getAllServices = async (_req: Request, res: Response) => {
+export const getAllServices = async (req: Request, res: Response) => {
   try {
-    const services = await Service.find().sort({ createdAt: -1 }).lean();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const [services, total] = await Promise.all([
+      Service.find()
+        .collation({ locale: "pt", strength: 2 })
+        .sort({ name: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Service.countDocuments(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     if (!services || services.length === 0) {
       return res.status(200).json({
         success: true,
+        pagination: {
+          total,
+          page,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null,
+        },
+        count: 0,
         services: [],
         message: "Nenhum atendimento encontrado",
       });
@@ -44,6 +70,16 @@ export const getAllServices = async (_req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null,
+      },
+      count: servicesWithNames.length,
       services: servicesWithNames,
       message: "Lista de atendimentos encontrada com sucesso",
     });
