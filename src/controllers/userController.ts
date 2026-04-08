@@ -229,7 +229,8 @@ export const getUserById = async (req: Request, res: Response) => {
       .populate("companyId", "companyName")
       .populate("departmentId", "departmentName")
       .populate("position", "positionName")
-      .populate("city", "city meal transport")
+      .populate("city", "city transport")
+      // .populate("workingHours", "workingHoursName")
       .lean();
 
     if (!user) {
@@ -368,6 +369,7 @@ export const registerUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
   const values: IUser = req.body;
+  console.log(values);
 
   try {
     const existingUser = await User.findById(id).lean();

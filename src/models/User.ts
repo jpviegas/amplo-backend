@@ -1,5 +1,9 @@
 import bcrypt from "bcryptjs";
 import mongoose, { Document } from "mongoose";
+import { ICities } from "./Cities";
+import { ICompany } from "./Company";
+import { IDepartment } from "./Department";
+import { IPosition } from "./Position";
 
 export interface IUser extends Document {
   name: string;
@@ -10,15 +14,15 @@ export interface IUser extends Document {
   cpf: string;
   registration: string;
   admissionDate: string;
-  companyId: string;
-  // companyId?: mongoose.Types.ObjectId | ICompany;
+  // companyId: string;
+  companyId?: mongoose.Types.ObjectId | ICompany;
   workingHours?: string;
   status: "active" | "inactive";
-  departmentId?: string;
-  // departmentId: mongoose.Types.ObjectId | IDepartment;
+  // departmentId?: string;
+  departmentId: mongoose.Types.ObjectId | IDepartment;
   costCenter?: string;
-  position?: string;
-  // position?: mongoose.Types.ObjectId | IPosition;
+  // position?: string;
+  position?: mongoose.Types.ObjectId | IPosition;
   sheetNumber?: string;
   ctps?: string;
   directSuperior?: string;
@@ -32,8 +36,8 @@ export interface IUser extends Document {
   address?: string;
   addressNumber?: string;
   neighborhood?: string;
-  city?: string;
-  // city?: mongoose.Types.ObjectId | ICities;
+  // city?: string;
+  city?: mongoose.Types.ObjectId | ICities;
   state?: string;
   phone?: string;
   extension?: string;
@@ -119,9 +123,9 @@ const userSchema = new mongoose.Schema<IUser>(
       required: [true, "A data de admissão é obrigatória"],
     },
     companyId: {
-      type: String,
-      // type: mongoose.Schema.Types.ObjectId,
-      // ref: "Company",
+      // type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
       required: true,
     },
     workingHours: {
@@ -138,9 +142,9 @@ const userSchema = new mongoose.Schema<IUser>(
       // required: true,
     },
     departmentId: {
-      type: String,
-      // type: mongoose.Schema.Types.ObjectId,
-      // ref: "Department",
+      // type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
       // required: true,
     },
     costCenter: {
@@ -148,10 +152,9 @@ const userSchema = new mongoose.Schema<IUser>(
       default: "",
     },
     position: {
-      type: String,
-      // type: mongoose.Schema.Types.ObjectId,
-      // ref: "Position",
-      default: "",
+      // type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Position",
     },
     sheetNumber: {
       type: String,
@@ -216,11 +219,9 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     city: {
       type: String,
+      // type: mongoose.Schema.Types.ObjectId,
+      // ref: "Cities",
     },
-    // city: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "Cities",
-    // },
     state: {
       type: String,
     },

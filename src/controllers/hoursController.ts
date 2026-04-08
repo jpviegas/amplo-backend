@@ -56,6 +56,32 @@ export const getAllHours = async (req: Request, res: Response) => {
   }
 };
 
+export const getHourById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const hour = await Hour.findOne({ _id: id }).lean();
+
+    if (!hour) {
+      return res.status(404).json({
+        success: false,
+        message: "Horário não encontrado",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      hour,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching hour",
+      error: error.message,
+    });
+  }
+};
+
 export const createHour = async (req: Request, res: Response) => {
   try {
     const { initialHour, finalHour } = req.body;
@@ -128,6 +154,33 @@ export const updateHour = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Erro ao atualizar hora",
+      error: error.message,
+    });
+  }
+};
+
+export const deleteHour = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const existingHour = await Hour.findById(id).lean();
+
+    if (!existingHour) {
+      return res.status(404).json({
+        success: false,
+        message: "Hora não encontrada",
+      });
+    }
+
+    await Hour.findByIdAndDelete(id);
+    res.status(200).json({
+      success: true,
+      message: `A hora ${existingHour.initialHour} - ${existingHour.finalHour} foi excluído com sucesso.`,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao excluir a hora.",
       error: error.message,
     });
   }

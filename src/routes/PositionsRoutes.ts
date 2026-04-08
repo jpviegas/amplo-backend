@@ -2,7 +2,7 @@ import express from "express";
 import {
   deletePosition,
   getAllPositions,
-  getPosition,
+  getPositionById,
   registerPosition,
   updatePosition,
 } from "../controllers/positionsController";
@@ -10,7 +10,7 @@ import {
 const router = express.Router();
 
 router.get("/", getAllPositions);
-router.get("/:id", getPosition);
+router.get("/:id", getPositionById);
 router.patch("/:id", updatePosition);
 router.post("/", registerPosition);
 router.delete("/:id", deletePosition);

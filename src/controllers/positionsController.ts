@@ -52,7 +52,7 @@ export const getAllPositions = async (req: Request, res: Response) => {
   }
 };
 
-export const getPosition = async (req: Request, res: Response) => {
+export const getPositionById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
