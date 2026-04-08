@@ -42,6 +42,7 @@ export interface IUser extends Document {
   gender?: string;
   nationality?: string;
   placeOfBirth?: string;
+  placeOfBirthUF?: string;
   civilStatus?: string;
   dependents: boolean;
   dependentsQuantity: number;
@@ -185,6 +186,9 @@ const userSchema = new mongoose.Schema<IUser>(
         },
         message: "Preencha apenas os 8 números da data de nascimento",
       },
+    },
+    placeOfBirthUF: {
+      type: String,
     },
     socialName: {
       type: String,
