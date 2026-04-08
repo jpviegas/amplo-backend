@@ -6,6 +6,7 @@ export interface ICompany extends Document {
   cnpj: string;
   cep: string;
   address: string;
+  addressNumber: string;
   district: string;
   city: string;
   uf: string;
@@ -50,6 +51,9 @@ const companySchema = new mongoose.Schema<ICompany>(
     address: {
       type: String,
       required: [true, "O endereço é obrigatório"],
+    },
+    addressNumber: {
+      type: String,
     },
     district: {
       type: String,

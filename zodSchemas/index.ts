@@ -47,7 +47,9 @@ export const registerCompanySchema = z.object({
     .length(14, "Preencha apenas os 14 números do CNPJ"),
   cep: z.string().length(7, "O número do CEP é obrigatório"),
   address: z.string().min(1, "O endereço é obrigatório"),
-  district: z.string().min(1, "O bairro é obrigatório"),
+  addressNumber: z.string().min(1, "O número do endereço é obrigatório")
+    .optional,
+  district: z.string().min(1, "O bairro é obrigatório").optional,
   city: z
     .object({
       city: z.string().optional(),
@@ -106,6 +108,7 @@ export const registerEmployeeSchema = z.object({
   }),
   cep: z.string().optional(),
   address: z.string().optional(),
+  addressNumber: z.string().optional(),
   neighborhood: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -116,6 +119,7 @@ export const registerEmployeeSchema = z.object({
   gender: z.string().optional(),
   nationality: z.string().optional(),
   placeOfBirth: z.string().optional(),
+  placeOfBirthUF: z.string().optional(),
   civilStatus: z.string().optional(),
 });
 

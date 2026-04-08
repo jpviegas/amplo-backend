@@ -1,7 +1,5 @@
 import bcrypt from "bcryptjs";
 import mongoose, { Document } from "mongoose";
-import { ICompany } from "./Company";
-import { IDepartment } from "./Department";
 
 export interface IUser extends Document {
   name: string;
@@ -12,12 +10,15 @@ export interface IUser extends Document {
   cpf: string;
   registration: string;
   admissionDate: string;
-  companyId: mongoose.Types.ObjectId | ICompany;
+  companyId: string;
+  // companyId?: mongoose.Types.ObjectId | ICompany;
   workingHours?: string;
   status: "active" | "inactive";
-  departmentId: mongoose.Types.ObjectId | IDepartment;
+  departmentId?: string;
+  // departmentId: mongoose.Types.ObjectId | IDepartment;
   costCenter?: string;
   position?: string;
+  // position?: mongoose.Types.ObjectId | IPosition;
   sheetNumber?: string;
   ctps?: string;
   directSuperior?: string;
@@ -29,6 +30,7 @@ export interface IUser extends Document {
   cnhExpiration?: string;
   cep?: string;
   address?: string;
+  addressNumber?: string;
   neighborhood?: string;
   city?: string;
   // city?: mongoose.Types.ObjectId | ICities;
@@ -97,7 +99,7 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     cpf: {
       type: String,
-      // required: [true, "O CPF é obrigatório"],
+      required: [true, "O CPF é obrigatório"],
       length: 11,
       validate: {
         validator: function (v: string) {
@@ -113,16 +115,18 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     admissionDate: {
       type: String,
-      // required: [true, "A data de admissão é obrigatória"],
+      required: [true, "A data de admissão é obrigatória"],
     },
     companyId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
-      // required: true,
+      type: String,
+      // type: mongoose.Schema.Types.ObjectId,
+      // ref: "Company",
+      required: true,
     },
     workingHours: {
       type: String,
       default: "",
+      required: true,
     },
     status: {
       type: String,
@@ -133,8 +137,9 @@ const userSchema = new mongoose.Schema<IUser>(
       // required: true,
     },
     departmentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
+      type: String,
+      // type: mongoose.Schema.Types.ObjectId,
+      // ref: "Department",
       // required: true,
     },
     costCenter: {
@@ -143,6 +148,8 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     position: {
       type: String,
+      // type: mongoose.Schema.Types.ObjectId,
+      // ref: "Position",
       default: "",
     },
     sheetNumber: {
@@ -197,6 +204,9 @@ const userSchema = new mongoose.Schema<IUser>(
     address: {
       type: String,
     },
+    addressNumber: {
+      type: String,
+    },
     neighborhood: {
       type: String,
     },
@@ -212,7 +222,7 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     phone: {
       type: String,
-      length: 11,
+      maxlength: 11,
       validate: {
         validator: function (v: string) {
           return v.length === 11;

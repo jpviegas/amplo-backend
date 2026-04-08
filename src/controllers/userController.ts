@@ -228,6 +228,7 @@ export const getUserById = async (req: Request, res: Response) => {
     const user = await User.findById(id)
       .populate("companyId", "companyName")
       .populate("departmentId", "departmentName")
+      .populate("position", "positionName")
       .populate("city", "city meal transport")
       .lean();
 
@@ -253,30 +254,49 @@ export const getUserById = async (req: Request, res: Response) => {
 };
 
 export const registerUser = async (req: Request, res: Response) => {
-  const values = req.body as Partial<IUser>;
+  const values = req.body as Record<string, any>;
   console.log(values);
 
   try {
-    const normalizedEmail = values.email?.toLowerCase().trim();
+    const normalizedValues: Record<string, any> = {};
+    for (const [key, value] of Object.entries(values || {})) {
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed) {
+          normalizedValues[key] = trimmed;
+        }
+        continue;
+      }
+      normalizedValues[key] = value;
+    }
+
+    const normalizedEmail =
+      typeof normalizedValues.email === "string"
+        ? normalizedValues.email.toLowerCase().trim()
+        : undefined;
 
     const existingUser = await User.findOne({
-      $or: [{ cpf: values.cpf }, { rg: values.rg }, { email: normalizedEmail }],
+      $or: [
+        { cpf: normalizedValues.cpf },
+        { rg: normalizedValues.rg },
+        { email: normalizedEmail },
+      ],
     }).lean();
 
     if (existingUser) {
-      if (existingUser.cpf === values.cpf) {
+      if (existingUser.cpf === normalizedValues.cpf) {
         return res.status(409).json({
           success: false,
           message: "Funcionário já cadastrado com este CPF",
         });
       }
-      if (existingUser.rg === values.rg) {
+      if (existingUser.rg === normalizedValues.rg) {
         return res.status(409).json({
           success: false,
           message: "Funcionário já cadastrado com este RG",
         });
       }
-      if (existingUser.email === values.email) {
+      if (existingUser.email === normalizedEmail) {
         return res.status(409).json({
           success: false,
           message: "Funcionário já cadastrado com este Email",
@@ -285,9 +305,9 @@ export const registerUser = async (req: Request, res: Response) => {
     }
 
     const userPayload = {
-      ...values,
+      ...normalizedValues,
       email: normalizedEmail,
-      password: values.password || generateTemporaryPassword(),
+      password: normalizedValues.password || generateTemporaryPassword(),
     };
 
     const user = await User.create(userPayload);
@@ -297,35 +317,37 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const firstAccessLink = `${getFrontendBaseUrl()}/cadastro-senha/${token}`;
 
-    await sendTemplateEmail({
-      to: user.email,
-      subject: "Defina sua senha de acesso",
-      title: "Seu cadastro foi criado",
-      description:
-        "Para acessar sua conta pela primeira vez, defina sua senha no link abaixo.",
-      actionUrl: firstAccessLink,
-      actionLabel: "Definir senha",
-      supportText:
-        "Se você não reconhece este cadastro, ignore este e-mail e entre em contato com o suporte.",
-    });
-
-    if (user) {
-      const userResponse = user.toObject();
-      delete (userResponse as any).password;
-
-      res.status(201).json({
-        success: true,
-        _id: user._id as unknown as string,
-        user: userResponse,
-        token: generateToken(user._id as unknown as string),
-        message: "Cadastro realizado com sucesso!",
+    let emailSent = false;
+    try {
+      await sendTemplateEmail({
+        to: user.email,
+        subject: "Defina sua senha de acesso",
+        title: "Seu cadastro foi criado",
+        description:
+          "Para acessar sua conta pela primeira vez, defina sua senha no link abaixo.",
+        actionUrl: firstAccessLink,
+        actionLabel: "Definir senha",
+        supportText:
+          "Se você não reconhece este cadastro, ignore este e-mail e entre em contato com o suporte.",
       });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: "Invalid user data",
-      });
+      emailSent = true;
+    } catch {
+      emailSent = false;
     }
+
+    const userResponse = user.toObject();
+    delete (userResponse as any).password;
+
+    return res.status(201).json({
+      success: true,
+      _id: user._id as unknown as string,
+      user: userResponse,
+      token: generateToken(user._id as unknown as string),
+      emailSent,
+      message: emailSent
+        ? "Cadastro realizado com sucesso!"
+        : "Cadastro realizado com sucesso! Não foi possível enviar o e-mail de primeiro acesso.",
+    });
   } catch (error: any) {
     if (error.name === "ValidationError") {
       return res.status(400).json({
@@ -346,7 +368,6 @@ export const registerUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
   const values: IUser = req.body;
-  console.log(values);
 
   try {
     const existingUser = await User.findById(id).lean();
