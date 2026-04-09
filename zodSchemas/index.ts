@@ -229,3 +229,18 @@ export const epiSchema = z.object({
     .string({ error: "O C.A. é obrigatório" })
     .nonempty("O C.A. é obrigatório"),
 });
+
+export type ManagementEPIType = z.infer<typeof managementEpiSchema>;
+export type ManagementEPITypeWithId = ManagementEPIType & { _id: string };
+export const managementEpiSchema = z.object({
+  employeeId: z
+    .string({ error: "O funcionário é obrigatório" })
+    .nonempty("O funcionário é obrigatório")
+    .min(3, "O funcionário é obrigatório"),
+  epiId: z
+    .string({ error: "O C.A. é obrigatório" })
+    .nonempty("O C.A. é obrigatório"),
+  quantity: z.number().optional(),
+  size: z.number().optional(),
+  comment: z.string().optional(),
+});

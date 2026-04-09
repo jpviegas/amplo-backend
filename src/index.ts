@@ -10,6 +10,7 @@ import departmentsRoutes from "./routes/DepartmentRoutes";
 import documentRoutes from "./routes/documentRoutes";
 import epiRoutes from "./routes/EPIRoutes";
 import hoursRoutes from "./routes/hoursRoutes";
+import managementRoutes from "./routes/ManagementRoutes";
 import noticesRoutes from "./routes/NoticesRoutes";
 import positionsRoutes from "./routes/PositionsRoutes";
 import refeicaoRoutes from "./routes/RefeicaoRoutes";
@@ -58,6 +59,7 @@ app.use("/api/companies", companiesRoutes);
 app.use("/api/departments", departmentsRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/epis", epiRoutes);
+app.use("/api/managements", managementRoutes);
 app.use("/api/positions", positionsRoutes);
 // ZapSign integration endpoints (mounted at root to match required paths)
 app.use("/", zapSignRoutes);
