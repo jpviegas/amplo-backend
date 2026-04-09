@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { EPI } from "../models/EPI";
-import { IManagement, Management } from "../models/Management";
+import { Management } from "../models/Management";
 import { User } from "../models/User";
 
 export const getAllManagements = async (req: Request, res: Response) => {
@@ -12,11 +12,15 @@ export const getAllManagements = async (req: Request, res: Response) => {
   try {
     const filter: Record<string, any> = {};
 
-    if (
-      typeof req.query.userId === "string" &&
-      mongoose.Types.ObjectId.isValid(req.query.userId)
-    ) {
-      filter.userId = new mongoose.Types.ObjectId(req.query.userId);
+    const employeeIdQuery =
+      typeof req.query.employeeId === "string"
+        ? req.query.employeeId
+        : typeof req.query.userId === "string"
+          ? req.query.userId
+          : undefined;
+
+    if (employeeIdQuery && mongoose.Types.ObjectId.isValid(employeeIdQuery)) {
+      filter.employeeId = new mongoose.Types.ObjectId(employeeIdQuery);
     }
 
     if (
@@ -31,7 +35,7 @@ export const getAllManagements = async (req: Request, res: Response) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "name email")
+        .populate("employeeId", "name email")
         .populate("epiId", "name ca")
         .lean(),
       Management.countDocuments(filter),
@@ -86,7 +90,7 @@ export const getManagementById = async (req: Request, res: Response) => {
 
   try {
     const management = await Management.findById(id)
-      .populate("userId", "name email")
+      .populate("employeeId", "name email")
       .populate("epiId", "name ca")
       .lean();
 
@@ -119,7 +123,7 @@ export const getManagementById = async (req: Request, res: Response) => {
 
 export const createManagement = async (req: Request, res: Response) => {
   try {
-    const values = req.body as IManagement;
+    const values = req.body as unknown as Record<string, any>;
     console.log(values);
 
     if (
@@ -181,6 +185,10 @@ export const createManagement = async (req: Request, res: Response) => {
       employeeId: values.employeeId,
       epiId: values.epiId,
       quantity: normalizedQuantity,
+      ...(typeof values.size === "string" ? { size: values.size.trim() } : {}),
+      ...(typeof values.comment === "string"
+        ? { comment: values.comment.trim() }
+        : {}),
     });
 
     return res.status(201).json({
@@ -210,9 +218,12 @@ export const updateManagement = async (req: Request, res: Response) => {
 
   try {
     const values = req.body as Partial<{
+      employeeId: unknown;
       userId: unknown;
       epiId: unknown;
       quantity: unknown;
+      size: unknown;
+      comment: unknown;
     }>;
 
     const existingManagement = await Management.findById(id).lean();
@@ -223,15 +234,19 @@ export const updateManagement = async (req: Request, res: Response) => {
       });
     }
 
-    const nextUserId =
-      typeof values.userId === "string" ? values.userId : undefined;
+    const nextEmployeeId =
+      typeof values.employeeId === "string"
+        ? values.employeeId
+        : typeof values.userId === "string"
+          ? values.userId
+          : undefined;
     const nextEpiId =
       typeof values.epiId === "string" ? values.epiId : undefined;
 
-    if (nextUserId && !mongoose.Types.ObjectId.isValid(nextUserId)) {
+    if (nextEmployeeId && !mongoose.Types.ObjectId.isValid(nextEmployeeId)) {
       return res.status(400).json({
         success: false,
-        message: "userId inválido",
+        message: "employeeId inválido",
       });
     }
 
@@ -257,8 +272,8 @@ export const updateManagement = async (req: Request, res: Response) => {
       });
     }
 
-    if (nextUserId) {
-      const userExists = await User.exists({ _id: nextUserId });
+    if (nextEmployeeId) {
+      const userExists = await User.exists({ _id: nextEmployeeId });
       if (!userExists) {
         return res.status(404).json({
           success: false,
@@ -280,13 +295,19 @@ export const updateManagement = async (req: Request, res: Response) => {
     const updatedManagement = await Management.findByIdAndUpdate(
       id,
       {
-        ...(nextUserId ? { userId: nextUserId } : {}),
+        ...(nextEmployeeId ? { employeeId: nextEmployeeId } : {}),
         ...(nextEpiId ? { epiId: nextEpiId } : {}),
         ...(values.quantity !== undefined ? { quantity: quantityNumber } : {}),
+        ...(typeof values.size === "string"
+          ? { size: values.size.trim() }
+          : {}),
+        ...(typeof values.comment === "string"
+          ? { comment: values.comment.trim() }
+          : {}),
       },
       { new: true, runValidators: true },
     )
-      .populate("userId", "name email")
+      .populate("employeeId", "name email")
       .populate("epiId", "name ca")
       .lean();
 
