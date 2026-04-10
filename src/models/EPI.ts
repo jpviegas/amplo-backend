@@ -13,7 +13,6 @@ const epiSchema = new mongoose.Schema<IEPI>(
     },
     ca: {
       type: String,
-      required: [true, "O C.A. é obrigatório"],
     },
   },
   {

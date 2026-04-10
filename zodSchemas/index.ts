@@ -225,9 +225,7 @@ export const epiSchema = z.object({
     .string()
     .nonempty("O nome do E.P.I. é obrigatório")
     .min(3, "O nome do E.P.I. deve ter pelo menos 3 caracteres"),
-  ca: z
-    .string({ error: "O C.A. é obrigatório" })
-    .nonempty("O C.A. é obrigatório"),
+  ca: z.string().optional(),
 });
 
 export type ManagementEPIType = z.infer<typeof managementEpiSchema>;
@@ -242,5 +240,15 @@ export const managementEpiSchema = z.object({
     .nonempty("O C.A. é obrigatório"),
   quantity: z.number().optional(),
   size: z.number().optional(),
+  comment: z.string().optional(),
+});
+
+export type HolidayType = z.infer<typeof holidaySchema>;
+export type HolidayTypeWithId = HolidayType & { _id: string };
+export const holidaySchema = z.object({
+  date: z
+    .string({ error: "A data do feriado é obrigatório" })
+    .nonempty("A data do feriado é obrigatório")
+    .min(3, "O feriado é obrigatório"),
   comment: z.string().optional(),
 });
