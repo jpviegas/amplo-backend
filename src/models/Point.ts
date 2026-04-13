@@ -8,6 +8,7 @@ export interface IPoint extends Document {
     latitude: number;
     longitude: number;
   };
+  type: "user" | "rh";
 }
 
 const PointSchema = new mongoose.Schema<IPoint>(
@@ -31,6 +32,11 @@ const PointSchema = new mongoose.Schema<IPoint>(
         type: Number,
         required: [true, "A longitude é obrigatória"],
       },
+    },
+    type: {
+      type: String,
+      required: [true, "O tipo do ponto é obrigatório"],
+      enum: ["user", "rh"],
     },
   },
   {

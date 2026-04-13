@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import { Point } from "../models/Point";
+import { IPoint, Point } from "../models/Point";
 import { PointHistory } from "../models/PointHistory";
 import { Refeicao } from "../models/Refeicao";
 import { Transporte } from "../models/Transporte";
@@ -254,7 +254,8 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
 
 export const registerPoint = async (req: Request, res: Response) => {
   try {
-    const { userId, location } = req.body;
+    const { userId, location, type, timestamp } = req.body;
+    console.log(req.body);
 
     if (!userId) {
       return res
@@ -266,6 +267,13 @@ export const registerPoint = async (req: Request, res: Response) => {
       return res
         .status(400)
         .json({ success: false, message: "ID do usuário inválido" });
+    }
+
+    if (type !== "user" && type !== "rh") {
+      return res.status(400).json({
+        success: false,
+        message: 'type inválido (use "user" ou "rh")',
+      });
     }
 
     const user = await User.findById(userId).populate("city");
@@ -281,13 +289,31 @@ export const registerPoint = async (req: Request, res: Response) => {
       });
     }
 
-    const now = new Date();
-    const brasiliaTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    let pointTimestamp: Date;
+    if (timestamp !== undefined && timestamp !== null && timestamp !== "") {
+      const parsed =
+        timestamp instanceof Date
+          ? timestamp
+          : typeof timestamp === "string" || typeof timestamp === "number"
+            ? new Date(timestamp)
+            : null;
 
-    const thirtySecondsAgo = new Date(brasiliaTime.getTime() - 30 * 1000);
+      if (!parsed || Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "timestamp inválido",
+        });
+      }
+      pointTimestamp = parsed;
+    } else {
+      const now = new Date();
+      pointTimestamp = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    }
+
+    const thirtySecondsAgo = new Date(pointTimestamp.getTime() - 30 * 1000);
     const recentPoint = await Point.findOne({
       userId,
-      timestamp: { $gte: thirtySecondsAgo, $lte: brasiliaTime },
+      timestamp: { $gte: thirtySecondsAgo, $lte: pointTimestamp },
     });
     if (recentPoint) {
       return res.status(400).json({
@@ -297,10 +323,10 @@ export const registerPoint = async (req: Request, res: Response) => {
       });
     }
 
-    const startOfDay = new Date(brasiliaTime);
+    const startOfDay = new Date(pointTimestamp);
     startOfDay.setHours(0, 0, 0, 0);
 
-    const endOfDay = new Date(brasiliaTime);
+    const endOfDay = new Date(pointTimestamp);
     endOfDay.setHours(23, 59, 59, 999);
 
     const dailyPointsCount = await Point.countDocuments({
@@ -320,11 +346,12 @@ export const registerPoint = async (req: Request, res: Response) => {
 
     const newPoint = await Point.create({
       userId,
-      timestamp: brasiliaTime,
+      timestamp: pointTimestamp,
       location,
+      type,
     });
 
-    const pointDate = new Date(brasiliaTime);
+    const pointDate = new Date(pointTimestamp);
     const monthNames = [
       "Janeiro",
       "Fevereiro",
@@ -460,6 +487,42 @@ export const getPointHistoryByUser = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Erro ao buscar histórico de pontos",
+      error: error.message,
+    });
+  }
+};
+
+export const updatePoint = async (req: Request, res: Response) => {
+  try {
+    const { userId, timestamp } = req.body as IPoint;
+    console.log(userId, timestamp);
+
+    if (!userId || !timestamp) {
+      return res.status(400).json({
+        success: false,
+        message: "ID do usuário e horário são obrigatórios",
+      });
+    }
+
+    const newPoint = await Point.findByIdAndUpdate(
+      req.params.id,
+      {
+        userId,
+        timestamp,
+        type: "rh",
+      },
+      { new: true },
+    );
+
+    res.status(200).json({
+      success: true,
+      data: newPoint,
+      message: "Ponto atualizado com sucesso!",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao editar ponto",
       error: error.message,
     });
   }
