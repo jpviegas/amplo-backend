@@ -3,10 +3,11 @@ import {
   authUser,
   changePassword,
   consumePasswordToken,
+  deleteUser,
   getAllUsers,
   getUserById,
-  requestPasswordReset,
   registerUser,
+  requestPasswordReset,
   sendTestEmail,
   updateUser,
   validatePasswordToken,
@@ -24,5 +25,6 @@ router.post("/password/validate-token", validatePasswordToken);
 router.post("/password/consume-token", consumePasswordToken);
 router.patch("/:id", updateUser);
 router.patch("/change-password/:id", changePassword);
+router.delete("/:id", deleteUser);
 
 export default router;

@@ -685,3 +685,30 @@ export const sendTestEmail = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deleteUser = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const existingUser = await User.findById(id).lean();
+
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuário não encontrado",
+      });
+    }
+
+    await User.findByIdAndDelete(id);
+    res.status(200).json({
+      success: true,
+      message: `O usuário ${existingUser.name} foi excluído com sucesso.`,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao excluir o usuário.",
+      error: error.message,
+    });
+  }
+};
