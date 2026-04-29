@@ -45,6 +45,7 @@ export interface IUser extends Document {
   motherName?: string;
   gender?: string;
   nationality?: string;
+  nationalityUF?: string;
   placeOfBirth?: string;
   placeOfBirthUF?: string;
   civilStatus?: string;
@@ -203,7 +204,7 @@ const userSchema = new mongoose.Schema<IUser>(
       type: String,
     },
     cnhExpiration: {
-      type: Date,
+      type: String,
     },
     cep: {
       type: String,
@@ -248,6 +249,9 @@ const userSchema = new mongoose.Schema<IUser>(
       type: String,
     },
     nationality: {
+      type: String,
+    },
+    nationalityUF: {
       type: String,
     },
     placeOfBirth: {
