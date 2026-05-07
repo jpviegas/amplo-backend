@@ -64,6 +64,10 @@ export interface IUser extends Document {
   passwordResetTokenHash?: string;
   passwordResetTokenExpiresAt?: Date;
   passwordResetTokenUsedAt?: Date;
+  mobileFirstLoginCompletedAt?: Date;
+  mobileLoginCodeHash?: string;
+  mobileLoginCodeExpiresAt?: Date;
+  mobileLoginCodeUsedAt?: Date;
   comparePassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -291,6 +295,18 @@ const userSchema = new mongoose.Schema<IUser>(
       type: Date,
     },
     passwordResetTokenUsedAt: {
+      type: Date,
+    },
+    mobileFirstLoginCompletedAt: {
+      type: Date,
+    },
+    mobileLoginCodeHash: {
+      type: String,
+    },
+    mobileLoginCodeExpiresAt: {
+      type: Date,
+    },
+    mobileLoginCodeUsedAt: {
       type: Date,
     },
   },

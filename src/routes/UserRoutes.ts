@@ -9,8 +9,10 @@ import {
   registerUser,
   requestPasswordReset,
   sendTestEmail,
+  setMobileFirstAccessPassword,
   updateUser,
   validatePasswordToken,
+  verifyMobileLoginCode,
 } from "../controllers/userController";
 
 const router = express.Router();
@@ -23,6 +25,8 @@ router.post("/email/test", sendTestEmail);
 router.post("/password/request-reset", requestPasswordReset);
 router.post("/password/validate-token", validatePasswordToken);
 router.post("/password/consume-token", consumePasswordToken);
+router.post("/mobile/verify-code", verifyMobileLoginCode);
+router.post("/mobile/set-password", setMobileFirstAccessPassword);
 router.patch("/:id", updateUser);
 router.patch("/change-password/:id", changePassword);
 router.delete("/:id", deleteUser);
