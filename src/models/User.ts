@@ -132,6 +132,7 @@ const userSchema = new mongoose.Schema<IUser>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+      set: (v: any) => (v === "" ? undefined : v),
     },
     workingHours: {
       type: String,
@@ -151,6 +152,7 @@ const userSchema = new mongoose.Schema<IUser>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       // required: true,
+      set: (v: any) => (v === "" ? undefined : v),
     },
     costCenter: {
       type: String,
@@ -160,6 +162,7 @@ const userSchema = new mongoose.Schema<IUser>(
       // type: String,
       type: mongoose.Schema.Types.ObjectId,
       ref: "Position",
+      set: (v: any) => (v === "" ? undefined : v),
     },
     sheetNumber: {
       type: String,
