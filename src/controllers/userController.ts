@@ -349,7 +349,7 @@ export const registerUser = async (req: Request, res: Response) => {
     const user = await User.create(userPayload);
     const { token, tokenHash } = createPasswordToken();
     setPasswordTokenData(user, "first-access", tokenHash);
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     const firstAccessLink = `${getFrontendBaseUrl()}/cadastro-senha/${token}`;
 
@@ -470,7 +470,7 @@ export const authUser = async (req: Request, res: Response) => {
     if (isFirstMobileLogin) {
       const { code, codeHash } = generateMobileLoginCode();
       setMobileLoginCodeData(user, codeHash);
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       let emailSent = false;
       try {
@@ -613,7 +613,7 @@ export const setMobileFirstAccessPassword = async (
     user.password = newPassword;
     clearMobileLoginCodeData(user);
     user.mobileFirstLoginCompletedAt = new Date();
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     const token = jwt.sign(
       {
@@ -678,7 +678,7 @@ export const changePassword = async (req: Request, res: Response) => {
       });
     }
     user.password = newPassword;
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
     res.status(200).json({
       success: true,
       message: "Senha alterada com sucesso",
@@ -716,7 +716,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 
     const { token, tokenHash } = createPasswordToken();
     setPasswordTokenData(user, "reset-password", tokenHash);
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     const resetLink = `${getFrontendBaseUrl()}/reset-senha/${token}`;
 
@@ -816,7 +816,7 @@ export const consumePasswordToken = async (req: Request, res: Response) => {
 
     user.password = newPassword;
     clearPasswordTokenData(user, type);
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     return res.status(200).json({
       success: true,
