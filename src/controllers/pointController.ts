@@ -1,10 +1,123 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
+import { Cities } from "../models/Cities";
 import { IPoint, Point } from "../models/Point";
 import { PointHistory } from "../models/PointHistory";
 import { Refeicao } from "../models/Refeicao";
 import { Transporte } from "../models/Transporte";
 import { User } from "../models/User";
+
+const BENEFITS_TIMEZONE = "America/Sao_Paulo";
+const REFEICAO_MINUTES_THRESHOLD = 4 * 60;
+const SAO_PAULO_UTC_OFFSET_HOURS = 3;
+
+const getDateKey = (date: Date) =>
+  date.toLocaleDateString("en-CA", { timeZone: BENEFITS_TIMEZONE });
+
+const getSaoPauloDateParts = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BENEFITS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+  const day = Number(parts.find((p) => p.type === "day")?.value);
+
+  return { year, month, day };
+};
+
+const getSaoPauloYearMonth = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BENEFITS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+
+  return { year, month };
+};
+
+const getSaoPauloDayRangeUtc = (date: Date) => {
+  const { year, month, day } = getSaoPauloDateParts(date);
+  const startUtcMs = Date.UTC(
+    year,
+    month - 1,
+    day,
+    SAO_PAULO_UTC_OFFSET_HOURS,
+    0,
+    0,
+    0,
+  );
+  const endUtcMs = startUtcMs + 24 * 60 * 60 * 1000 - 1;
+  return { start: new Date(startUtcMs), end: new Date(endUtcMs) };
+};
+
+const getSaoPauloMonthRangeUtc = (year: number, month: number) => {
+  const startUtcMs = Date.UTC(
+    year,
+    month - 1,
+    1,
+    SAO_PAULO_UTC_OFFSET_HOURS,
+    0,
+    0,
+    0,
+  );
+  const nextMonthStartUtcMs = Date.UTC(
+    year,
+    month,
+    1,
+    SAO_PAULO_UTC_OFFSET_HOURS,
+    0,
+    0,
+    0,
+  );
+  return {
+    start: new Date(startUtcMs),
+    end: new Date(nextMonthStartUtcMs - 1),
+  };
+};
+
+const computeDaysWorkedFromPoints = (
+  points: Array<{ timestamp: Date }>,
+  minutesThreshold: number,
+) => {
+  const perDay = new Map<string, Date[]>();
+
+  for (const p of points) {
+    const d = new Date(p.timestamp);
+    const key = getDateKey(d);
+    const list = perDay.get(key) ?? [];
+    list.push(d);
+    perDay.set(key, list);
+  }
+
+  let daysAtLeastThreshold = 0;
+  for (const [, timestamps] of perDay) {
+    timestamps.sort((a, b) => a.getTime() - b.getTime());
+
+    let totalMs = 0;
+    for (let i = 0; i + 1 < timestamps.length; i += 2) {
+      const start = timestamps[i].getTime();
+      const end = timestamps[i + 1].getTime();
+      if (end > start) totalMs += end - start;
+    }
+
+    const totalMinutes = Math.floor(totalMs / (1000 * 60));
+    if (totalMinutes >= minutesThreshold) {
+      daysAtLeastThreshold += 1;
+    }
+  }
+
+  return {
+    daysWithAnyPoint: perDay.size,
+    daysAtLeastThreshold,
+  };
+};
 
 export const getAllTimesheets = async (req: Request, res: Response) => {
   try {
@@ -147,8 +260,9 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
       });
     }
 
-    const start = new Date(Number(year), Number(month) - 1, 1);
-    const end = new Date(Number(year), Number(month), 0, 23, 59, 59);
+    const monthNumber = Number(month);
+    const yearNumber = Number(year);
+    const { start, end } = getSaoPauloMonthRangeUtc(yearNumber, monthNumber);
 
     const points = await Point.find({
       userId: id,
@@ -196,7 +310,7 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
         t.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
-          timeZone: "UTC",
+          timeZone: BENEFITS_TIMEZONE,
         }),
       );
 
@@ -220,7 +334,7 @@ export const getTimesheetByUser = async (req: Request, res: Response) => {
       const dateStr = dateObj.toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
-        timeZone: "UTC",
+        timeZone: BENEFITS_TIMEZONE,
       });
 
       if (dateStr !== currentDay) {
@@ -306,8 +420,7 @@ export const registerPoint = async (req: Request, res: Response) => {
       }
       pointTimestamp = parsed;
     } else {
-      const now = new Date();
-      pointTimestamp = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      pointTimestamp = new Date();
     }
 
     const thirtySecondsAgo = new Date(pointTimestamp.getTime() - 30 * 1000);
@@ -323,11 +436,8 @@ export const registerPoint = async (req: Request, res: Response) => {
       });
     }
 
-    const startOfDay = new Date(pointTimestamp);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(pointTimestamp);
-    endOfDay.setHours(23, 59, 59, 999);
+    const { start: startOfDay, end: endOfDay } =
+      getSaoPauloDayRangeUtc(pointTimestamp);
 
     const dailyPointsCount = await Point.countDocuments({
       userId,
@@ -366,12 +476,15 @@ export const registerPoint = async (req: Request, res: Response) => {
       "Novembro",
       "Dezembro",
     ];
-    const mesIndex = pointDate.getMonth();
+    const ym = getSaoPauloYearMonth(pointDate);
+    const mesIndex = ym.month - 1;
     const mesNome = monthNames[mesIndex];
-    const ano = pointDate.getFullYear();
+    const ano = ym.year;
 
-    const startOfMonth = new Date(ano, mesIndex, 1);
-    const endOfMonth = new Date(ano, mesIndex + 1, 0, 23, 59, 59);
+    const { start: startOfMonth, end: endOfMonth } = getSaoPauloMonthRangeUtc(
+      ano,
+      ym.month,
+    );
 
     const monthlyPoints = await Point.find({
       userId,
@@ -379,16 +492,15 @@ export const registerPoint = async (req: Request, res: Response) => {
         $gte: startOfMonth,
         $lte: endOfMonth,
       },
-    }).lean();
+    })
+      .sort({ timestamp: 1 })
+      .lean();
 
-    const uniqueDays = new Set(
-      monthlyPoints.map((p) => {
-        const d = new Date(p.timestamp);
-        return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-      }),
-    );
-
-    const diasTrabalhados = uniqueDays.size;
+    const { daysWithAnyPoint, daysAtLeastThreshold } =
+      computeDaysWorkedFromPoints(
+        monthlyPoints as Array<{ timestamp: Date }>,
+        REFEICAO_MINUTES_THRESHOLD,
+      );
 
     let valorRefeicaoDiario = 0;
     let valorTransporteDiario = 0;
@@ -397,15 +509,39 @@ export const registerPoint = async (req: Request, res: Response) => {
       const city = user.city as any;
       valorRefeicaoDiario = city.meal || 0;
       valorTransporteDiario = city.transport || 0;
+    } else if (typeof (user as any).city === "string" && (user as any).city) {
+      const cityValue = String((user as any).city).trim();
+      if (mongoose.Types.ObjectId.isValid(cityValue)) {
+        const cityDoc = await Cities.findById(cityValue)
+          .select("meal transport")
+          .lean();
+        if (cityDoc) {
+          valorRefeicaoDiario = Number((cityDoc as any).meal) || 0;
+          valorTransporteDiario = Number((cityDoc as any).transport) || 0;
+        }
+      } else {
+        const cityDoc = await Cities.findOne({ city: cityValue })
+          .collation({ locale: "pt", strength: 2 })
+          .select("meal transport")
+          .lean();
+        if (cityDoc) {
+          valorRefeicaoDiario = Number((cityDoc as any).meal) || 0;
+          valorTransporteDiario = Number((cityDoc as any).transport) || 0;
+        }
+      }
     }
 
-    const valorRefeicaoTotal = diasTrabalhados * valorRefeicaoDiario;
-    const valorTransporteTotal = diasTrabalhados * valorTransporteDiario;
+    const diasTrabalhadosRefeicao = daysAtLeastThreshold;
+    const diasTrabalhadosTransporte = daysWithAnyPoint;
+
+    const valorRefeicaoTotal = diasTrabalhadosRefeicao * valorRefeicaoDiario;
+    const valorTransporteTotal =
+      diasTrabalhadosTransporte * valorTransporteDiario;
 
     await Refeicao.findOneAndUpdate(
       { user: userId, month: mesNome, year: ano },
       {
-        daysWorked: diasTrabalhados,
+        daysWorked: diasTrabalhadosRefeicao,
         totalValue: valorRefeicaoTotal,
         dailyValue: valorRefeicaoDiario,
         user: userId,
@@ -418,7 +554,7 @@ export const registerPoint = async (req: Request, res: Response) => {
     await Transporte.findOneAndUpdate(
       { user: userId, month: mesNome, year: ano },
       {
-        daysWorked: diasTrabalhados,
+        daysWorked: diasTrabalhadosTransporte,
         totalValue: valorTransporteTotal,
         dailyValue: valorTransporteDiario,
         user: userId,
@@ -432,7 +568,7 @@ export const registerPoint = async (req: Request, res: Response) => {
       { user: userId, month: mesNome, year: ano },
       {
         pointsCount: monthlyPoints.length,
-        daysWorked: diasTrabalhados,
+        daysWorked: daysWithAnyPoint,
         user: userId,
         month: mesNome,
         year: ano,
