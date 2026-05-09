@@ -29,8 +29,9 @@ type SendTemplateEmailPayload = {
   subject: string;
   title: string;
   description: string;
-  actionUrl: string;
-  actionLabel: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  code?: string;
   supportText?: string;
 };
 
@@ -38,10 +39,19 @@ export async function sendTemplateEmail(payload: SendTemplateEmailPayload) {
   const resend = getResendClient();
   const from = getFromEmail();
 
-  const html = `
-  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111827">
-    <h2 style="margin-bottom:16px">${payload.title}</h2>
-    <p style="line-height:1.5;margin-bottom:20px">${payload.description}</p>
+  const codeBlock = payload.code
+    ? `
+    <div style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;text-align:center">
+      <span style="display:inline-block;font-size:32px;font-weight:700;letter-spacing:8px;color:#111827">
+        ${payload.code}
+      </span>
+    </div>
+  `
+    : "";
+
+  const actionBlock =
+    payload.actionUrl && payload.actionLabel
+      ? `
     <a href="${payload.actionUrl}" style="display:inline-block;background:#111827;color:#ffffff;padding:12px 16px;text-decoration:none;border-radius:8px;font-weight:600">
       ${payload.actionLabel}
     </a>
@@ -49,6 +59,15 @@ export async function sendTemplateEmail(payload: SendTemplateEmailPayload) {
       Se o botão não funcionar, copie e cole este link no navegador:<br />
       <span>${payload.actionUrl}</span>
     </p>
+  `
+      : "";
+
+  const html = `
+  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111827">
+    <h2 style="margin-bottom:16px">${payload.title}</h2>
+    <p style="line-height:1.5;margin-bottom:20px">${payload.description}</p>
+    ${codeBlock}
+    ${actionBlock}
     ${
       payload.supportText
         ? `<p style="margin-top:12px;line-height:1.5;color:#6b7280">${payload.supportText}</p>`

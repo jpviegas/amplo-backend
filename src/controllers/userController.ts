@@ -314,7 +314,7 @@ export const registerUser = async (req: Request, res: Response) => {
     const user = await User.create(userPayload);
     const { token, tokenHash } = createPasswordToken();
     setPasswordTokenData(user, "first-access", tokenHash);
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     const firstAccessLink = `${getFrontendBaseUrl()}/cadastro-senha/${token}`;
 
@@ -406,7 +406,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
 export const authUser = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, platform } = req.body;
 
     if (!email || !password) {
       return res
@@ -484,7 +484,7 @@ export const changePassword = async (req: Request, res: Response) => {
       });
     }
     user.password = newPassword;
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
     res.status(200).json({
       success: true,
       message: "Senha alterada com sucesso",
@@ -522,7 +522,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 
     const { token, tokenHash } = createPasswordToken();
     setPasswordTokenData(user, "reset-password", tokenHash);
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     const resetLink = `${getFrontendBaseUrl()}/reset-senha/${token}`;
 
@@ -622,7 +622,7 @@ export const consumePasswordToken = async (req: Request, res: Response) => {
 
     user.password = newPassword;
     clearPasswordTokenData(user, type);
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     return res.status(200).json({
       success: true,
