@@ -168,13 +168,16 @@ export const getAllTimesheets = async (req: Request, res: Response) => {
           userId: { $first: "$userIdObj" },
           name: { $first: "$name" },
           date: { $first: "$dateKey" },
-          timestamps: {
+          records: {
             $push: {
-              $dateToString: {
-                format: "%Y-%m-%d %H:%M:%S",
-                date: "$timestamp",
-                timezone: "America/Sao_Paulo",
+              timestamp: {
+                $dateToString: {
+                  format: "%Y-%m-%d %H:%M:%S",
+                  date: "$timestamp",
+                  timezone: "America/Sao_Paulo",
+                },
               },
+              type: "$type",
             },
           },
         },
@@ -189,12 +192,24 @@ export const getAllTimesheets = async (req: Request, res: Response) => {
     ]);
 
     const total = totalCount?.[0]?.total || 0;
-    const points = (data || []).map((g: any) => ({
-      userId: g.userId,
-      name: typeof g?.name === "string" ? g.name : null,
-      date: g.date,
-      timestamps: Array.isArray(g.timestamps) ? g.timestamps : [],
-    }));
+    const points = (data || []).map((g: any) => {
+      const records = Array.isArray(g.records) ? g.records : [];
+      const timestamps = records
+        .map((r: any) => r?.timestamp)
+        .filter((t: any) => typeof t === "string");
+      const types = records
+        .map((r: any) => r?.type)
+        .filter((t: any) => t === "user" || t === "rh");
+
+      return {
+        userId: g.userId,
+        name: typeof g?.name === "string" ? g.name : null,
+        date: g.date,
+        records,
+        timestamps,
+        types,
+      };
+    });
 
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;

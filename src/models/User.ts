@@ -3,6 +3,7 @@ import mongoose, { Document } from "mongoose";
 import { ICities } from "./Cities";
 import { ICompany } from "./Company";
 import { IDepartment } from "./Department";
+import { IHours } from "./Hour";
 import { IPosition } from "./Position";
 
 export interface IUser extends Document {
@@ -16,7 +17,7 @@ export interface IUser extends Document {
   admissionDate: string;
   // companyId: string;
   companyId?: mongoose.Types.ObjectId | ICompany;
-  workingHours?: string;
+  workingHours?: mongoose.Types.ObjectId | IHours;
   status: "active" | "inactive";
   // departmentId?: string;
   departmentId: mongoose.Types.ObjectId | IDepartment;
@@ -43,7 +44,7 @@ export interface IUser extends Document {
   extension?: string;
   fatherName?: string;
   motherName?: string;
-  gender?: string;
+  gender?: "masculino" | "feminino" | "outro" | "nao-informar";
   nationality?: string;
   nationalityUF?: string;
   placeOfBirth?: string;
@@ -222,9 +223,9 @@ const userSchema = new mongoose.Schema<IUser>(
       type: String,
     },
     city: {
-      type: String,
-      // type: mongoose.Schema.Types.ObjectId,
-      // ref: "Cities",
+      // type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Cities",
     },
     state: {
       type: String,

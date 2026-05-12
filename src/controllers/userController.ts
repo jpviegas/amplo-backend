@@ -305,7 +305,43 @@ export const registerUser = async (req: Request, res: Response) => {
       }
     }
 
+    const defaultUserValues = {
+      role: "employee",
+      status: "inactive",
+      workingHours: undefined,
+      pis: "",
+      registration: "",
+      costCenter: "",
+      sheetNumber: "",
+      ctps: "",
+      directSuperior: "",
+      socialName: "",
+      cnh: "",
+      cnhCategory: "",
+      cnhExpiration: "",
+      cep: "",
+      address: "",
+      addressNumber: "",
+      neighborhood: "",
+      city: undefined,
+      state: "",
+      phone: "",
+      extension: "",
+      fatherName: "",
+      motherName: "",
+      gender: "nao-informar",
+      nationality: "",
+      nationalityUF: "",
+      placeOfBirth: "",
+      placeOfBirthUF: "",
+      civilStatus: "",
+      dependents: false,
+      dependentsQuantity: 0,
+      children: [],
+    } satisfies Partial<IUser>;
+
     const userPayload = {
+      ...defaultUserValues,
       ...normalizedValues,
       email: normalizedEmail,
       password: normalizedValues.password || generateTemporaryPassword(),

@@ -153,13 +153,7 @@ export const profileSchema = z.object({
   rg: z.string().min(1, "RG é obrigatório"),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatório"),
   celular: z.string().min(1, "Celular é obrigatório"),
-  genero: z
-    .tuple([
-      z.string().min(1, "masculino"),
-      z.string().min(1, "feminino"),
-      z.string().min(1, "outro"),
-    ])
-    .optional(),
+  genero: z.enum(["masculino", "feminino", "outro", "nao-informar"]).optional(),
   dependentes: z.boolean().optional(),
   dependenteNome: z.string().min(1, "Nome é obrigatório").optional(),
   dependenteCpf: z.string().min(1, "CPF é obrigatória").optional(),
