@@ -132,8 +132,9 @@ const userSchema = new mongoose.Schema<IUser>(
       set: (v: any) => (v === "" ? undefined : v),
     },
     workingHours: {
-      type: String,
-      default: "",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hour",
+      default: null,
       required: true,
     },
     status: {

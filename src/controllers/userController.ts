@@ -230,7 +230,7 @@ export const getUserById = async (req: Request, res: Response) => {
       .populate("departmentId", "departmentName")
       .populate("position", "positionName")
       .populate("city", "city transport")
-      // .populate("workingHours", "workingHoursName")
+      .populate("workingHours", "name")
       .lean();
 
     if (!user) {

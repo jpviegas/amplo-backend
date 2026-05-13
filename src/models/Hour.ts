@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose";
 
 export interface IHours extends Document {
-  name?: string;
+  name: string;
   initialHour?: string;
   finalHour?: string;
   days?: Array<{
