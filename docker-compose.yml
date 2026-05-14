@@ -1,17 +1,20 @@
 services:
-  mongodb:
-    image: mongo:7
-    container_name: amplo-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: amplo-backend:latest
+    container_name: amplo-backend
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5001:5001"
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
-      interval: 10s
+      test: ["CMD-SHELL", "node -e \"require('net').connect(5001,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))\""]
+      interval: 30s
       timeout: 5s
       retries: 3
-
-volumes:
-  mongodb_data:
+      start_period: 20s
