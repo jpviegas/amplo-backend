@@ -75,7 +75,7 @@ export type EmployeeType = z.infer<typeof registerEmployeeSchema>;
 export type EmployeeTypeWithId = EmployeeType & { _id: string };
 export const registerEmployeeSchema = z.object({
   name: z.string().min(10, "O nome é obrigarório"),
-  pis: z.string().min(1, "O PIS é obrigatório"),
+  pis: z.string().optional(),
   cpf: z
     .string()
     .nonempty("O CPF é obrigatório")
