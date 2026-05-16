@@ -15,7 +15,7 @@ import { createDocument } from "../services/zapSignService";
 
 const createDocSchema = z.object({
   userId: z.string().min(1, "userId é obrigatório"),
-  type: z.enum(ZAPSIGN_DOCUMENT_TYPES),
+  type: z.enum(ZAPSIGN_DOCUMENT_TYPES).default("demais_documentos"),
   signers: z
     .array(z.string().email("Email inválido"))
     .min(1, "Ao menos 1 email"),
