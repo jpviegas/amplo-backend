@@ -681,7 +681,7 @@ export const sendTestEmail = async (req: Request, res: Response) => {
     .trim()
     .toLowerCase();
   const actionUrl = String(
-    req.body?.actionUrl || "http://localhost:3000/cadastro-senha/token",
+    req.body?.actionUrl || "https://www.amploservicosapp.com.br/cadastro-senha/token",
   ).trim();
   const subject = String(req.body?.subject || "Teste de envio de e-mail");
 
