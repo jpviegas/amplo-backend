@@ -17,6 +17,11 @@ function getFromEmail(): string {
   if (!from) {
     throw new Error("RESEND_FROM_EMAIL não definido");
   }
+  // Validate basic email format to catch .env misconfiguration (e.g. missing newline between vars)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$|^.+\s<[^\s@]+@[^\s@]+\.[^\s@]+>$/;
+  if (!emailRegex.test(from)) {
+    throw new Error(`RESEND_FROM_EMAIL inválido: "${from}" — verifique o arquivo .env`);
+  }
   return from;
 }
 
